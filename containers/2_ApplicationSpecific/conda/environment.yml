@@ -1,0 +1,11 @@
+name: example-env
+channels:
+  - conda-forge
+  - nvidia
+  - bioconda
+dependencies:
+  - cuda
+  - gcc=12.4
+  - python=3.10
+  - pip
+

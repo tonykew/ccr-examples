@@ -4,7 +4,6 @@
 ##   For more information, refer to the following resources whenever referenced in the script-
 ##   README- https://github.com/ubccr/ccr-examples/tree/main/slurm/README.md
 ##   DOCUMENTATION- https://docs.ccr.buffalo.edu/en/latest/hpc/jobs
-##   GPU DOCUMENTATION- https://docs.ccr.buffalo.edu/en/latest/software/modules/#alphafold
 
 ##   Select a cluster, partition, qos and account that is appropriate for your use case
 ##   Available options and more details are provided in README
@@ -14,24 +13,14 @@
 #SBATCH --account=[SlurmAccountName]
 
 ##   Job runtime limit, the job will be canceled once this limit is reached. Format- dd:hh:mm
-#SBATCH --time=03:30:00
+#SBATCH --time=00:01:00
 
-##   Refer to DOCUMENTATION for details on the next two directives
-
-##   Specify the number of tasks (for parallelism)
+##   Number of "tasks" (for parallelism). Refer to DOCUMENTATION for more details
 #SBATCH --ntasks=1
 
-##   Allocate CPUs per task
-#SBATCH --cpus-per-task=32
-
 ##   Specify real memory required per node. Default units are megabytes
-#SBATCH --mem=64000
+#SBATCH --mem=20G
 
-##   Number of GPUs required. Specify the GPU node with the constraint option (A100, V100). 
-##   See GPU DOCUMENTATION for more info (CCR Staff: Info needs to be confirmed)
-#SBATCH --gpus-per-node=2
-#SBATCH --constraint=A100
-
-module load foss alphafold
-
-srun run_alphafold.py --fasta_paths=T1050.fasta --max_template_date=2020-05-14 --model_preset=monomer --db_preset=full_dbs --output_dir=output
+##   Let's start some work
+echo "Hello world: "`/usr/bin/uname -n`
+##   Let's finish some work

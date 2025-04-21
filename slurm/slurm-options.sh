@@ -43,7 +43,7 @@
 
 ## Tell Slurm which cluster, partition and qos to use to schedule this job.  
 #SBATCH --cluster=ub-hpc
-OR
+## OR
 #SBATCH --cluster=faculty
 
 ## Refer to documentation on what partitions are available and determining what you have access to

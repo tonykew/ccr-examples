@@ -1,0 +1,93 @@
+Bootstrap: docker
+From: nvcr.io/nvidia/nvhpc:23.11-devel-cuda12.3-ubuntu22.04
+
+%arguments
+    NPROCS=4
+    VASP_VERSION=6.3.0
+
+%files
+    vasp.{{ VASP_VERSION }}.tgz /opt
+    makefile.include /opt
+
+%post
+
+    ### Install VASP dependencies
+    apt-get update
+    apt-get install -y \
+      build-essential \
+      cmake \
+      cmake-curses-gui \
+      libopenmpi-dev \
+      openmpi-bin \
+      ibverbs-providers \
+      libfftw3-dev \
+      rsync \
+      zlib1g \
+      wget \
+      rsync \
+      dos2unix \
+      gawk
+
+    rm -rf /var/lib/apt/lists/*
+
+    # Set up environment variables for NVIDIA HPC SDK
+    export PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/comm_libs/mpi/bin:${PATH}
+    export MANPATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/comm_libs/mpi/man:${MANPATH}
+    export PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/compilers/bin:${PATH}
+    export PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/compilers/compilers/extras:${PATH}
+    export LD_LIBRARY_PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/compilers/extras/qd/lib:${LD_LIBRARY_PATH}
+    export LD_LIBRARY_PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/cuda/12.3/targets/x86_64-linux/lib:${LD_LIBRARY_PATH}
+    export LD_LIBRARY_PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/comm_libs/12.3/openmpi4/openmpi-4.1.5/lib:${LD_LIBRARY_PATH}
+    export PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/comm_libs/12.3/openmpi4/openmpi-4.1.5/bin:${PATH}
+
+    # Install HDF5 with NVIDIA HPC SDK support
+    cd /var/tmp
+    wget https://github.com/HDFGroup/hdf5/releases/download/hdf5_1.14.4.3/hdf5-1.14.4-3.tar.gz
+    tar xvzf hdf5-1.14.4-3.tar.gz
+    cd hdf5-1.14.4-3
+    mkdir build
+    CC=nvc CXX=nvc++ ./configure --prefix=/opt/hdf5 \
+            --enable-fortran \
+            --enable-cxx \
+            --enable-shared
+    make -j{{ NPROCS }}
+    make install
+    cd ..
+    rm -rf hdf5-1.14.4-3*
+
+    # Set HDF5 environment variables
+    export PATH=/opt/hdf5/bin:${PATH}
+    export LD_LIBRARY_PATH=/opt/hdf5/lib:${LD_LIBRARY_PATH}
+
+
+    # Add the crucial QD environment variables
+    export QD=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/compilers/extras/qd
+    export LD_LIBRARY_PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/compilers/extras/qd/lib:${LD_LIBRARY_PATH}
+    export INCLUDE=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/compilers/extras/qd/include/qd:${INCLUDE}
+
+    # Extract and build VASP
+    mkdir /opt/vasp
+    cd /opt/vasp
+    mv /opt/vasp.{{ VASP_VERSION }}.tgz .
+    tar xvzf vasp.{{ VASP_VERSION }}.tgz --no-same-owner
+    rm vasp.{{ VASP_VERSION }}.tgz
+    cd vasp.{{ VASP_VERSION }}
+    mv /opt/makefile.include .
+    make all
+        
+%environment
+    export PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/comm_libs/mpi/bin:${PATH}
+    export MANPATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/comm_libs/mpi/man:${MANPATH}
+    export PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/compilers/bin:${PATH}
+    export PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/compilers/compilers/extras:${PATH}
+    export LD_LIBRARY_PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/compilers/extras/qd/lib:${LD_LIBRARY_PATH}
+    export LD_LIBRARY_PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/cuda/12.3/targets/x86_64-linux/lib:${LD_LIBRARY_PATH}
+    export LD_LIBRARY_PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/comm_libs/12.3/openmpi4/openmpi-4.1.5/lib:${LD_LIBRARY_PATH}
+    export PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/comm_libs/12.3/openmpi4/openmpi-4.1.5/bin:${PATH}
+    export PATH=/opt/hdf5/bin:${PATH}
+    export LD_LIBRARY_PATH=/opt/hdf5/lib:${LD_LIBRARY_PATH}
+    export QD=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/compilers/extras/qd
+    export LD_LIBRARY_PATH=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/compilers/extras/qd/lib:${LD_LIBRARY_PATH}
+    export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/libibverbs:${LD_LIBRARY_PATH}
+    export INCLUDE=/opt/nvidia/hpc_sdk/Linux_x86_64/23.11/compilers/extras/qd/include/qd:${INCLUDE}
+    export PATH=/opt/vasp/vasp.{{ VASP_VERSION }}/bin:${PATH}
