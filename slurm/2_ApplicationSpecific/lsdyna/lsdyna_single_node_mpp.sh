@@ -34,14 +34,14 @@ module load intel
 export LSTC_LICENSE=ansys
 . $EBROOTIMPI/mpi/latest/env/vars.sh
 
-# replace with your model file name
+##   Replace with your model file name
 MODEL=ball_and_plate.k
 
 ##   For single precision parallel use this:
 mpiexec $EBROOTANSYS/v231/ansys/bin/linx64/lsdyna_sp_mpp.e i=$MODEL
 
 ##   For double precision parallel use this, uncommenting the next line and commenting out the line above
-##   mpiexec $EBROOTANSYS/v231/ansys/bin/linx64/lsdyna_dp_mpp.e i=$MODEL
+#mpiexec $EBROOTANSYS/v231/ansys/bin/linx64/lsdyna_dp_mpp.e i=$MODEL
 
 echo 'all done'
 exit

@@ -1,0 +1,159 @@
+Bootstrap: docker
+From: ubuntu:24.04
+
+%post
+  # Set the timezone, if unset
+  test -h /etc/localtime || ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
+
+  cp /etc/apt/sources.list /etc/apt/sources.list~
+  sed -E -i 's/^# deb-src /deb-src /' /etc/apt/sources.list
+  apt-get -y update && DEBIAN_FRONTEND=noninteractive apt-get -y upgrade
+
+  # Add the deadsnakes PPA for python3.11
+  apt-get -y install software-properties-common
+  add-apt-repository ppa:deadsnakes/ppa -y
+  apt update
+
+  DEBIAN_FRONTEND=noninteractive apt-get -y install \
+   tzdata \
+   locales \
+   unzip \
+   wget \
+   git \
+   build-essential \
+   autoconf \
+   automake \
+   pkg-config \
+   cmake \
+   cmake-data \
+   cmake-extras \
+   cmake-format \
+   python3.11-full \
+   python3.11-dev \
+   python3.11-distutils \
+   liblapack-dev \
+   openmpi-bin \
+   openmpi-common \
+   libopenmpi-dev \
+   libscalapack-openmpi-dev \
+   libcurl4-gnutls-dev \
+   zstd \
+   curl \
+   jq \
+   nano \
+   vim
+
+  # Set python version 3.11 as the default
+  update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 --slave /usr/bin/python3 python3 /usr/bin/python3.11
+
+  # These steps are necessary to configure Perl and can cause issues with Python if omitted
+  sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+  dpkg-reconfigure --frontend=noninteractive locales
+  update-locale LANG=en_US.UTF-8
+
+  # Libraries in /usr/local/lib
+  # Include files in /usr/local/include
+  export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
+  export CFLAGS="${CFLAGS} -I/usr/local/include"
+  export CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
+  export CXXFLAGS="${CXXFLAGS} -I/usr/local/include"
+  export FFLAGS="${FFLAGS} -I/usr/local/include"
+  export LDFLAGS="${LDFLAGS} -L/usr/local/lib -Wl,-rpath,/usr/local/lib"
+  export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)"
+  # python install and packages paths specifically for python version 3.11
+  python_site_dir="/usr/local/lib/python3.11/site-packages"
+  export PYTHONPATH="${python_site_dir}:/usr/local/lib/python3.11/dist-packages:${PYTHONPATH}"
+  export PATH="${PATH}:${python_site_dir}/bin"
+
+  # install pip3 for Python version 3.11
+  python3.11 -m ensurepip --upgrade
+  # curl -sSL https://bootstrap.pypa.io/get-pip.py -o get-pip.py && python3.11 get-pip.py
+  update-alternatives --install /usr/bin/pip pip /usr/local/bin/pip3 1
+  pip install --prefix=/usr --upgrade pip
+
+  # distro from the Ubuntu package clashes with the one from pip
+  DEBIAN_FRONTEND=noninteractive apt-get -y remove python3-distro
+  pip install distro setuptools
+
+  #
+  # Note: OpenSees build requires conan 1.x
+  #
+  pip install --prefix="/usr" "conan<2.0"
+  #conan profile detect
+  conan profile new default --detect
+
+  cd ${HOME}
+  git clone --depth 1 --branch hdf5-1_14_3 https://github.com/HDFGroup/hdf5.git
+  cd hdf5
+  ./configure --prefix=/usr/local/hdf5
+  make -j$(nproc)
+  cd ..
+  git clone https://github.com/OpenSees/mumps.git
+  cd mumps
+  mkdir build
+  cd build
+  cmake .. -Darith=d
+  cmake  --build . -j$(nproc)
+  cd ../..
+  git clone https://github.com/OpenSees/OpenSees.git
+  cd OpenSees
+  # allow build on armv8
+  sed -i '/settings/s|"x86_64"|"x86_64","armv8"|' conanfile.py
+  mkdir build
+  cd build
+  export Python_EXECUTABLE="/usr/bin/python3.11"
+  export Python_INCLUDE_DIRS="/usr/include/python3.11"
+  export Python_LIBRARIES="/usr/lib/$(arch)-linux-gnu/libpython3.11.so"
+  conan install .. --build missing
+  cmake  .. -DMUMPS_DIR=${PWD}/../../mumps/build -DOPENMPI=TRUE -DSCALAPACK_LIBRARIES="/usr/lib/$(arch)-linux-gnu/libscalapack-openmpi.so"
+  cmake --build . --config Release --target OpenSees   --parallel $(nproc)
+  cmake --build . --config Release --target OpenSeesSP --parallel $(nproc)
+  cmake --build . --config Release --target OpenSeesMP --parallel $(nproc)
+  cmake --build . --config Release --target OpenSeesPy --parallel $(nproc)
+  install -p -m 755 ./bin/* /usr/local/bin
+  install -p -m 755 ./lib/OpenSeesPy.so /usr/local/lib
+  cp -r ./lib/tcl8.6 /usr/local/lib
+
+  # Install OpenSeesPy from source
+  cd ${HOME}
+  # see https://github.com/zhuminjie/OpenSeesPy/tags for the latest version tag
+  OpenSeesPy_version=v3.7.1.2
+  git clone -b ${OpenSeesPy_version} --single-branch https://github.com/zhuminjie/OpenSeesPy
+  cd OpenSeesPy/pip
+  python ./build_pip.py build v3.7.1.2 v3.7.1.2
+  pip install -I --prefix=/usr dist/openseespy-3.7.1.2-py3-none-any.whl
+
+  # Build openseespylinux from source
+  #   https://github.com/ccaprani/openseespy-pip/tree/master/openseespylinux-pip
+  cd ${HOME}
+  git clone https://github.com/ccaprani/openseespy-pip
+  cd openseespy-pip/openseespylinux-pip/
+  # force the openseespylinux version to match the openseespy version
+  sed -i "s/=.*$/=\"${OpenSeesPy_version}\"/" openseespylinux/version.py
+  cp /usr/local/lib/OpenSeesPy.so opensees.so
+  python build_pip.py python build opensees.so copy_dep no_zip
+  pip install -I --prefix=/usr dist/openseespylinux-*-py3-none-any.whl
+
+  # Install eqsig and xara
+  pip install --prefix="/usr" eqsig xara
+
+  #
+  # Cleanup
+  #
+  # remove source trees
+  cd ${HOME}
+  rm -rf "hdf5"
+  rm -rf "mumps"
+  rm -rf "OpenSees"
+  rm -rf "OpenSeesPy"
+  rm -rf "openseespy-pip"
+  # remove conan files
+  rm -rf "${HOME}/.conan"
+  rm -rf "${HOME}/.cache"
+  rm -rf "${HOME}/.launchpadlib"
+
+%environment
+  export LANG="en_US.UTF-8"
+  export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
+  export PYTHONPATH="/usr/local/lib/python3.11/site-packages:/usr/local/lib/python3.11/dist-packages:${PYTHONPATH}"
+  export PATH="${PATH}:/usr/local/lib/python3.11/site-packages/bin"

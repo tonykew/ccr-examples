@@ -34,14 +34,14 @@ module load intel
 export LSTC_LICENSE=ansys
 . $EBROOTIMPI/mpi/latest/env/vars.sh
 
-# replace with your model file name
+##  Replace with your model file name
 MODEL=ball_and_plate.k
 
-#construct nodefile
+##  Construct a Slurm nodefile
 SLURM_NODEFILE=my_slurm_nodes.$$
 mpiexec hostname -s | sort > $SLURM_NODEFILE
 
-# calculate number of processors
+##  Calculate number of processors
 np=`cat $SLURM_NODEFILE | wc -l`
 nnodes=`cat $SLURM_NODEFILE | sort -u | wc -l`
 ppn=`expr $np / $nnodes`
@@ -49,10 +49,10 @@ nodelist=`cat $SLURM_NODEFILE | sort -u | tr '\n' ' '`
 
 export OMP_NUM_THREADS=$np
 
-# For single precision use this
+##  For single precision use this
 mpiexec -n $SLURM_NPROCS $EBROOTANSYS/v231/ansys/bin/linx64/lsdyna_sp_mpp.e ncpus=$SLURM_NPROCS i=$MODEL
 
-# For double precision use this, uncommenting the next line and commenting out the line above
+##  For double precision use this, uncommenting the next line and commenting out the line above
 #mpiexec -n $SLURM_NPROCS $EBROOTANSYS/v231/ansys/bin/linx64/lsdyna_dp_mpp.e ncpus=$SLURM_NPROCS i=$MODEL
 
 echo 'all done'

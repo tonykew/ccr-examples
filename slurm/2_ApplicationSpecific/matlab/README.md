@@ -6,8 +6,7 @@ This directory includes examples of serial, multithreaded, and GPU  MATLAB jobs.
 
 A serial MATLAB job is one that requires only a single CPU-core.
 
-Provided is an example of a trivial, one-line serial MATLAB program (`hello_world.m`) with the corresponding Slurm script (`matlab-sp.sh`) that can be modified to run a serial MATLAB job. By 
-invoking MATLAB with `-singleCompThread` `-nodisplay` `-nosplash`, the GUI is suppressed as is the creation of multiple threads.
+Provided is an example of a trivial, one-line serial MATLAB program (`hello_world.m`) with the corresponding Slurm script (`matlab-sp.sh`) that can be modified to run a serial MATLAB job. By invoking MATLAB with `-singleCompThread` `-nodisplay` `-nosplash`, the GUI is suppressed as is the creation of multiple threads.
 
 To run the MATLAB script, simply submit the job to the scheduler from a login node with the following command:
 ```
@@ -17,16 +16,13 @@ $ sbatch matlab-sp.sh
 
 ## Multi-threaded MATLAB Job ([multithreaded/](./multithreaded))
 
-If your code utilizes the Parallel Computing Toolbox (e.g., `parfor`) or you have intense computations that can benefit from the built-in multi-threading provided by MATLAB's BLAS implementation, 
-you can run in multi-threaded mode. You can use up to all the CPU-cores on a single node in this mode.
+If your code utilizes the Parallel Computing Toolbox (e.g., `parfor`) or you have intense computations that can benefit from the built-in multi-threading provided by MATLAB's BLAS implementation, you can run in multi-threaded mode. You can use up to all the CPU-cores on a single node in this mode.
 
 Provided is an example from MathWorks of using multiple cores (`for_loop.m`). The example Slurm script (`matlab-mp.sh`) can be modified to run a single node, multi-threaded MATLAB job.
 
-- NOTE: For multi-node jobs you will need to use the [MATLAB Parallel Server](https://docs.ccr.buffalo.edu/en/latest/howto/matlab/#running-multi-node-jobs-using-matlab-parallel-server). You should 
-always use `#SBATCH --nodes=1` for multi-threaded and serial calculations.
+- NOTE: For multi-node jobs you will need to use the [MATLAB Parallel Server](https://docs.ccr.buffalo.edu/en/latest/howto/matlab/#running-multi-node-jobs-using-matlab-parallel-server). You should always use `#SBATCH --nodes=1` for multi-threaded and serial calculations.
 
-- NOTE: To achieve optimal performance, you must tune the `--cpus-per-task` value. Use the smallest value that gives you a significant performance boost because the more resources you request the 
-longer your queue time may be.
+- NOTE: To achieve optimal performance, you must tune the `--cpus-per-task` value. Use the smallest value that gives you a significant performance boost because the more resources you request the longer your queue time may be.
 
 By default MATLAB will restrict you to 12 worker threads. You can override this when making the parallel pool with the following line, for example, with 24 threads:
 ```

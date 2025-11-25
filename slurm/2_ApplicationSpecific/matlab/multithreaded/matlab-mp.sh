@@ -33,6 +33,8 @@
 #SBATCH --mail-type=all
 #SBATCH --mail-user=UBITusername@buffalo.edu
 
+##   Load the matlab software module
 module load matlab/2023b
 
+##   Run your multithreaded matlab command
 matlab -nodisplay -nosplash -r for_loop

@@ -1,0 +1,15 @@
+name: openff-toolkit
+channels:
+  - conda-forge
+  - nvidia
+dependencies:
+  - nvidia::cuda
+  - conda-forge::gcc=13.3.0
+  - conda-forge::python=3.12
+  - conda-forge::pip
+  - conda-forge::ambertools
+  - conda-forge::openff-toolkit
+  - conda-forge::ipywidgets
+  - conda-forge::notebook
+  - conda-forge::nglview
+

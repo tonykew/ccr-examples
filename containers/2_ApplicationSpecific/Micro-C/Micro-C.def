@@ -1,0 +1,418 @@
+Bootstrap: docker
+From: ubuntu:latest
+
+%post
+  # Set the timezone, if unset
+  test -h /etc/localtime || ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
+
+  apt-get -y update && DEBIAN_FRONTEND=noninteractive apt-get -y upgrade
+ 
+  DEBIAN_FRONTEND=noninteractive apt-get -y install \
+   apt-utils \
+   locales \
+   unzip \
+   wget \
+   build-essential \
+   autoconf \
+   automake \
+   pkg-config \
+   cmake \
+   cmake-data \
+   cmake-extras \
+   cmake-format \
+   bisonc++ \
+   default-jre \
+   python3 \
+   python3-pip \
+   python3-setuptools \
+   python3-sphinx \
+   python3-sphinx-rtd-theme \
+   gnulib \
+   libssl-dev \
+   zlib1g-dev \
+   libbz2-dev \
+   libncurses5-dev \
+   libncursesw5-dev \
+   liblzma-dev \
+   liblz4-tool \
+   libcurl4-gnutls-dev \
+   curl \
+   libdeflate-dev \
+   gawk \
+   git \
+   tabix \
+   libhdf5-dev \
+   libhts3 \
+   libhts-dev \
+   libhtscodecs2 \
+   libhtscodecs-dev \
+   r-bioc-rhtslib \
+   libopenblas64-0 \
+   libopenblas64-dev \
+   libopenblas-dev \
+   libopenblas64-dev \
+   liblapack3 \
+   liblapack-dev \
+   liblapacke-dev \
+   nano \
+   vim
+
+  # Install man & man pages
+  sed -e '\|/usr/share/man|s|^#*|#|g' -i /etc/dpkg/dpkg.cfg.d/excludes
+  DEBIAN_FRONTEND=noninteractive apt-get -y install apt-utils dialog manpages manpages-posix man-db
+  rm -f /usr/bin/man
+  dpkg-divert --quiet --remove --rename /usr/bin/man
+
+  # Set python3 as the default
+  update-alternatives --install /usr/bin/python python /usr/bin/python3 1
+  update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
+
+  echo "These steps are necessary to configure Perl and can cause issues with Python if omitted"
+  sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+  dpkg-reconfigure --frontend=noninteractive locales 
+  update-locale LANG=en_US.UTF-8
+
+  # Libraries in /usr/local/lib
+  # Include files in /usr/local/include
+  export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
+  export CFLAGS="${CFLAGS} -I/usr/local/include"
+  export CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
+  export CXXFLAGS="${CXXFLAGS} -I/usr/local/include"
+  export FFLAGS="${FFLAGS} -I/usr/local/include"
+  export LDFLAGS="${LDFLAGS} -L/usr/local/lib -Wl,-rpath,/usr/local/lib"
+  export CMAKE_BUILD_PARALLEL_LEVEL="$(nproc)"
+  pip_install_dir="$(python3 -c 'import sys; print("/usr/local/lib/python" + str(sys.version_info.major) + "." + str(sys.version_info.minor) + "/dist-packages")')"
+  export PYTHONPATH="${pip_install_dir}:${PYTHONPATH}"
+  export PATH="${PATH}:${pip_install_dir}/bin"
+
+  ##############################################################################
+  ## Install dependencies, deeptools and cooler
+  ##############################################################################
+  cd ${HOME}
+  pip install --prefix=/usr numpy \
+   cython \
+   pandas \
+   mkdocs \
+   pysam \
+   tabulate \
+   scipy \
+   py2bit \
+   matplotlib \
+   seaborn \
+   statsmodels \
+   pyBigWig \
+   deeptools \
+   h5py \
+   click \
+   cooler
+
+  ##############################################################################
+  ## Install bedtools from source
+  ##############################################################################
+  cd ${HOME}
+  git clone https://github.com/arq5x/bedtools2.git
+  cd bedtools2
+  make -j $(nproc)
+  #cd test/
+  #sed -E -i 's/^[[:space:]]*ulimit/#ulimit/' test.sh
+  #bash test.sh
+  #cd ..
+  make install
+
+  ##############################################################################
+  ## Install fanc
+  ##############################################################################
+  cd ${HOME}
+  # Oddly, installing fanc with pip doesn't install the scripts "fanc" and
+  # "fancplot"
+  #pip3 install --prefix=/usr fanc
+  # ...so we install from git
+  git clone http://www.github.com/vaquerizaslab/fanc
+  cd fanc
+  pip install --prefix=/usr .
+  install -p -m 755 bin/* /usr/local/bin
+
+  ##############################################################################
+  ## Install bwa
+  ##############################################################################
+  cd ${HOME}
+  git clone https://github.com/lh3/bwa.git
+  cd bwa
+  make -j $(nproc)
+  cp bwa qualfa2fq.pl xa2multi.pl /usr/local/bin
+
+  ##############################################################################
+  ## Install samtools
+  ##############################################################################
+  cd ${HOME}
+  wget https://github.com/samtools/samtools/releases/download/1.21/samtools-1.21.tar.bz2
+  bzip2 -dc samtools-1.21.tar.bz2 | tar xf -
+  rm samtools-1.21.tar.bz2
+  cd samtools-1.21/
+  ./configure 
+  make -j $(nproc)
+  make install
+  ## install htslib
+  cd htslib-1.21
+  make -j $(nproc)
+  make install
+
+  ##############################################################################
+  # Install pairtools from source
+  ##############################################################################
+  cd ${HOME}
+  git clone https://github.com/open2c/pairtools
+  cd pairtools
+  #pip install -e ./ --no-build-isolation --prefix=/usr
+  #python setup.py sdist
+  python setup.py build
+  python setup.py install
+
+  ##############################################################################
+  ## Install preseq
+  ##############################################################################
+  cd ${HOME}
+  # recursive clone from github
+  git clone --recurse-submodules --remote-submodules https://github.com/smithlabcode/preseq.git
+  cd preseq
+  aclocal
+  autoheader
+  automake --add-missing
+  autoconf
+  cd ./src/smithlab_cpp
+  aclocal
+  autoheader
+  automake --add-missing
+  autoconf
+  cd ../..
+  # Note: added g++ flag "-fpermissive" as a work round for build error:
+  # src/lc_extrap.cpp:142:36: error: invalid conversion from 'const char**' to 'char**
+  ./configure --enable-hts CPPFLAGS="${CPPFLAGS} -I/usr/include/htslib" CXXFLAGS="${CXXFLAGS} -fpermissive"
+  make -j $(nproc)
+  make install
+
+  ##############################################################################
+  ## Install Micro-C in /opt/Micro-C and build the docs & man pages
+  ##############################################################################
+  mkdir -p /opt
+  cd /opt
+  git clone https://github.com/dovetail-genomics/Micro-C.git
+  cd /opt/Micro-C/docs
+  #
+  # Since "juicertools.jar pre" has been replaced by HiCTools (see below) fix
+  # the docs to refer to the new tool
+  sed -i -E -e 's|Juicer[[:space:]]+Tools[[:space:]]+<https://github.com/aidenlab/juicer>|HiCTools <https://github.com/aidenlab/HiCTools>|' \
+   -e 's|\./Micro-C/juicertools.jar|/opt/Micro-C/hic_tools.jar|' \
+   -e 's|juicertools.jar|hic_tools.jar|' \
+   -e 's|Juicer[[:space:]]+tools[[:space:]]+`here <https://github.com/aidenlab/juicer/wiki/Download>`_|HiCTools `here <https://github.com/aidenlab/HiCTools/releases>`_ in the "Assets" section of the latest release|' \
+   -e '/^[[:space:]]*wget/s|wget.*$|wget https://github.com/aidenlab/HiCTools/releases/download/v3.30.00/hic_tools.3.30.00.jar|' \
+   -e '/^[[:space:]]*mv/s|mv.*$|ln -sf hic_tools.3.30.00.jar hic_tools.jar|' \
+   -e 's|path_to_juicer_tools.jar|path_to_hic_tools.jar|' \
+   -e 's|Juicer|HiCTools|g' source/contact_map.rst
+  # Add note on the work-round for the hic_tools bug
+  perl -0777 -i -pe 's/(\*\*Example\:\*\*\n\n)(\.\.[[:space:]]+code-block\:\:[[:space:]]*console\n\n[[:space:]]*java)/\1Note: There is a bug in hic_tools failing to read valid headers from a pairix format file; so the following example trims out all headers except "## pairs" and "#columns" from the mapped.pairs file\n\n\2/' source/contact_map.rst
+  sed -E -i -e "/[[:space:]]+\/opt\/Micro-C\/hic_tools.jar[[:space:]]+/i \   grep -E '^(##[[:space:]]+pairs|#columns|[^#])' mapped.pairs > ht_mapped.pairs'" -e '/[[:space:]]+\/opt\/Micro-C\/hic_tools.jar[[:space:]]+/s/mapped\.pairs/ht_mapped.pairs/' source/contact_map.rst
+  # fix the juicer_tools.jar path in conf_analysis.rst
+  sed -E -i 's|[[:space:]]+juicer_tools.jar[[:space:]]+| /opt/Micro-C/juicer_tools.jar |' source/conf_analysis.rst
+  #
+  # NOTE: There is no HiCTools version of the Juicer Tools documentation 
+  #       here:  https://github.com/aidenlab/juicer/wiki/Pre
+  #
+  # I install get_qc.py in /usr/local/bin so change the docs to reflect this
+  sed -i -E -e 's|python3[[:space:]]+\./Micro-C/||' source/library_qc.rst
+  #
+  make -j $(nproc) text man info html
+  mkdir build/man1
+  mv build/man/* build/man1/
+  mv build/man1/ build/man/
+  # NOTE: get_qc.py installed as part of HiChiP
+  #cd /opt/Micro-C
+  #install -p -m 755 "get_qc.py" "/usr/local/bin"
+
+  ##############################################################################
+  #
+  # Juicebox is being split up into separate tools:
+  #
+  # JuiceboxGUI  for visualization of Hi-C maps with Juicebox Desktop and genome
+  #                assembly correction with Assembly Tools.
+  # HiCTools     for building and writing .hic files (Pre, Addnorm, and
+  #               Statistics)
+  # JuicerTools  for downstream analysis of .hic files (HiCCUPS, Arrowhead, APA,
+  #               etc.)
+  # Java Straw   quickly read and stream data from .hic files into Java, and is
+  #               used by the above repositories.
+  #
+  # 
+  # And the following new tools have been added
+  #
+  # Straw        to quickly read and stream data from .hic files into C++,
+  #               python, R, and MATLAB.
+  # POSSUMM      for new C++ code to rapidly calculate A-B compartments (i.e.
+  #               eigenvectors) for higher resolutions
+  # EMT          for upgrading older .hic files or making smaller .hic files for
+  #               regions of interest.
+  #
+  ##############################################################################
+
+  ##############################################################################
+  ## Install JuiceboxGUI
+  ##############################################################################
+  cd /opt/Micro-C/
+  wget https://github.com/aidenlab/JuiceboxGUI/releases/download/v3.1.4/juicebox.jar
+
+  ##############################################################################
+  ## Install HiCTools (replaces "juicertools.jar pre")
+  ##############################################################################
+  cd /opt/Micro-C/
+  wget https://github.com/aidenlab/HiCTools/releases/download/v3.30.00/hic_tools.3.30.00.jar
+  ln -s hic_tools.3.30.00.jar hic_tools.jar
+  ln -s hic_tools.3.30.00.jar juicertools.jar
+ 
+  ##############################################################################
+  ## Install the Juicer Tools jar file as /opt/Micro-C/juicer_tools.jar
+  ##############################################################################
+  cd /opt/Micro-C/
+  wget https://github.com/aidenlab/JuicerTools/releases/download/v3.0.0/juicer_tools.3.0.0.jar
+  ln -s juicer_tools.3.0.0.jar juicer_tools.jar
+
+  ##############################################################################
+  ## Install Jave Straw
+  ##############################################################################
+  cd /opt/Micro-C/
+  wget https://github.com/aidenlab/java-straw/releases/download/v2.3.4/java-straw.jar
+
+  ##############################################################################
+  ## Install Straw
+  ##############################################################################
+  cd /opt/Micro-C/
+  pip3 install --prefix=/usr hic-straw
+  git clone https://github.com/aidenlab/straw.git
+  cd straw/C++
+  mkdir build
+  cd build
+  cmake ..
+  make -j $(nproc)
+  install -p -m 755 "straw" "/usr/local/bin"
+
+  ##############################################################################
+  ## Install POSSUMM
+  ##############################################################################
+  cd ${HOME}
+  #git clone https://github.com/sa501428/EigenVector
+  git clone https://github.com/moshe-olshansky/EigenVector.git
+  cd EigenVector/C++/Lanczos
+  g++ -std=c++11 -O2 -Wno-format-security -I/opt/Micro-C/straw/C++ \
+   -c "/opt/Micro-C/straw/C++/straw.cpp" -o straw.o
+  g++ -std=c++11 -O2 -Wno-format-security -o /usr/local/bin/Lan.exe \
+   s_fLan.cpp \
+   s_fSOLan.c s_dthMul.c hgFlipSign.c \
+   straw.o \
+   -I. -I /opt/Micro-C/straw/C++ \
+   -lz -lcurl -lpthread -lblas -llapack -llapacke
+  g++ -std=c++11 -O2 -o /usr/local/bin/GWev.exe \
+   s_fGW.cpp getGWMatrix.cpp \
+   s_fSOLan.c s_dthMul.c \
+   straw.o \
+   -I /opt/Micro-C/straw/C++ \
+   -lz -lcurl -lpthread -lblas -llapack -llapacke
+  cd ../PowerMethod/
+  g++ -std=c++11 -O2 -o /usr/local/bin/ev.exe \
+   /opt/Micro-C/straw/C++/straw.cpp theEigenVector_flip_new.cpp \
+   theBestEigen.c thdMul.c hgFlipSign.c \
+   -I . -I /opt/Micro-C/straw/C++ \
+   -lz -lcurl -lpthread
+  g++ -std=c++11 -O2 -o /usr/local/bin/GWevIntra.exe \
+   GWevIntra_new.cpp theBestEigen.c thdMul.c hgFlipSign.c \
+   /opt/Micro-C/straw/C++/straw.cpp \
+   -I . -I /opt/Micro-C/straw/C++ \
+   -lz -lcurl -lpthread
+  g++ -std=c++11 -O2 -o /usr/local/bin/mainEigen.exe \
+   mainEigen.c theBestEigen.c thdMul.c -lpthread
+
+  ##############################################################################
+  ## Install EMT
+  ##############################################################################
+  cd /opt/Micro-C/
+  wget https://github.com/sa501428/hic-emt/releases/download/v1.10.2/hic_emt.jar
+
+  ##############################################################################
+  ## Install mustache from source
+  ##############################################################################
+  cd ${HOME}
+  git clone https://github.com/ay-lab/mustache
+  cd mustache
+  # remove installing any (older versions of) dependencies
+  sed -E -i '/[[:space:]]python/s|=.*$||' environment.yml
+  perl -0777 -i -pe 's/install_requires=\[[^\]]*\]/install_requires=\[\]/' setup.py
+  # fix using a SciPy deprecated namespace
+  sed -E -i 's/scipy\.ndimage\.filters[[:space:]]+import[[:space:]]+maximum_filter/scipy\.ndimage import maximum_filter/' mustache/*.py
+  # use np.asarray rather than np.array with newer NumPy
+  sed -E -i -e 's/np\.array/np.asarray/g' -e 's/[[:space:]]*copy=False,//' mustache/*.py
+  python setup.py install
+
+  ##############################################################################
+  ## Install Pairix
+  ##############################################################################
+  cd ${HOME}
+  git clone https://github.com/4dn-dcic/pairix
+  cd pairix
+  make -j $(nproc)
+  python setup.py install
+  cd ./bin/
+  install -p -m 755 pairix bgzip pairs_merger streamer_1d /usr/local/bin
+
+  ##############################################################################
+  ## Install HiChiP
+  ##############################################################################
+  # see:  https://hichip.readthedocs.io/en/latest/index.html
+  cd /opt/Micro-C/
+  git clone https://github.com/dovetail-genomics/HiChiP.git
+  cd /opt/Micro-C/HiChiP/docs
+  #
+  # Since "juicertools.jar pre" has been replaced by HiCTools (see above)
+  # fix the docs to refer to the new tool
+  sed -i -E -e 's|Juicer[[:space:]]+Tools[[:space:]]+<https://github.com/aidenlab/juicer>|HiCTools <https://github.com/aidenlab/HiCTools>|' \
+   -e 's|\./HiChiP/juicertools.jar|/opt/Micro-C/hic_tools.jar|' \
+   -e 's|juicertools.jar|hic_tools.jar|' \
+   -e 's|Juicer[[:space:]]+tools[[:space:]]+`here <https://github.com/aidenlab/juicer/wiki/Download>`_|HiCTools `here <https://github.com/aidenlab/HiCTools/releases>`_ in the "Assets" section of the latest release|' \
+   -e '/^[[:space:]]*wget/s|wget.*$|wget https://github.com/aidenlab/HiCTools/releases/download/v3.30.00/hic_tools.3.30.00.jar|' \
+   -e '/^[[:space:]]*mv/s|mv.*$|ln -sf hic_tools.3.30.00.jar hic_tools.jar|' \
+   -e 's|path_to_juicer_tools.jar|path_to_hic_tools.jar|' source/contact_map.rst
+  # Add note on the work-round for the hic_tools bug
+  perl -0777 -i -pe 's/(\*\*Example\:\*\*\n\n)(\.\.[[:space:]]+code-block\:\:[[:space:]]*console\n\n[[:space:]]*java)/\1Note: There is a bug in hic_tools failing to read valid headers from a pairix format file; so the following example trims out all headers except "## pairs" and "#columns" from the mapped.pairs file\n\n\2/' source/contact_map.rst
+  sed -E -i -e "/[[:space:]]+\/opt\/Micro-C\/hic_tools.jar[[:space:]]+/i \   grep -E '^(##[[:space:]]+pairs|#columns|[^#])' mapped.pairs > ht_mapped.pairs'" -e '/[[:space:]]+\/opt\/Micro-C\/hic_tools.jar[[:space:]]+/s/mapped\.pairs/ht_mapped.pairs/' source/contact_map.rst
+  #
+  # I install the scripts in /usr/local/bin so change the docs to reflect this
+  sed -i -E -e 's|\./HiChiP/||' -e 's|python3[[:space:]]+||' source/library_qc.rst
+  #
+  make -j $(nproc) text man info html
+  mkdir build/man1
+  mv build/man/* build/man1/
+  mv build/man1/ build/man/
+  cd /opt/Micro-C/HiChiP
+  install -p -m 755 *.py "enrichment_stats.sh" "/usr/local/bin" 
+
+  ##############################################################################
+  # Install the aws CLI tool (referred to in the HiChIP docs)
+  ##############################################################################
+  cd ${HOME}
+  curl "https://awscli.amazonaws.com/awscli-exe-linux-$(arch).zip" -o "awscliv2.zip"
+  unzip awscliv2.zip
+  ./aws/install
+
+  ##############################################################################
+  # Install the Integrated Genome Viewer (IGV)
+  ##############################################################################
+  cd /opt/Micro-C/
+  #wget https://data.broadinstitute.org/igv/projects/downloads/2.19/IGV_Linux_2.19.4_WithJava.zip
+  wget https://data.broadinstitute.org/igv/projects/downloads/2.19/IGV_2.19.4.zip
+  unzip IGV_2.19.4.zip
+  rm IGV_2.19.4.zip
+
+%environment
+  export LANG=en_US.UTF-8 
+  export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
+  export PYTHONPATH="$(python3 -c 'import sys; print("/usr/local/lib/python" + str(sys.version_info.major) + "." + str(sys.version_info.minor) + "/dist-packages")'):${PYTHONPATH}"
+  export PATH="${PATH}:$(python3 -c 'import sys; print("/usr/local/lib/python" + str(sys.version_info.major) + "." + str(sys.version_info.minor) + "/dist-packages/bin")'):/opt/Micro-C/IGV_2.19.4"
+  export MANPATH="${MANPATH}:/opt/Micro-C/docs/build/man:/opt/Micro-C/HiChiP/docs/build/man"
+

@@ -33,5 +33,8 @@
 #SBATCH --mail-type=all
 #SBATCH --mail-user=UBITusername@buffalo.edu
 
+##  Load the software modules required to run Python on the CCR's software environment, your use case may require additional modules to be loaded
 module load gcccore/11.2.0 python/3.9.6
+
+##  Replace the following with your desired serial python command(s)
 python fibonacci.py

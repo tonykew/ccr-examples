@@ -33,14 +33,14 @@ module load ansys
 export LSTC_LICENSE=ansys
 echo $SLURM_NPROCS
 
-# replace with your model file name
+##   Replace with your model file name
 MODEL=ball_and_plate.k
 
 ##   For single precision use this
 $EBROOTANSYS/v231/ansys/bin/linx64/lsdyna_sp.e ncpus=$SLURM_NPROCS i=$MODEL
 
 ##   For double precision use this, uncommenting the next line and commenting out the line above
-##   $EBROOTANSYS/v231/ansys/bin/linx64/lsdyna_dp.e ncpus=$SLURM_NPROCS i=$MODEL
+#$EBROOTANSYS/v231/ansys/bin/linx64/lsdyna_dp.e ncpus=$SLURM_NPROCS i=$MODEL
 
 echo 'all done'
 exit

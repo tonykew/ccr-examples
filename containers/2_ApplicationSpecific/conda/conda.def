@@ -18,9 +18,9 @@ From: ubuntu:latest
     update-locale LANG=en_US.UTF-8
 
     wget -P /tmp \
-      "https://github.com/conda-forge/miniforge/releases/download/23.3.1-1/Miniforge3-Linux-x86_64.sh" \
-      && bash /tmp/Miniforge3-Linux-x86_64.sh -b -p /opt/conda \
-      && rm /tmp/Miniforge3-Linux-x86_64.sh
+      "https://github.com/conda-forge/miniforge/releases/download/25.3.0-3/Miniforge3-$(uname)-$(uname -m).sh" \
+      && bash /tmp/Miniforge3-$(uname)-$(uname -m).sh -b -p /opt/conda \
+      && rm /tmp/Miniforge3-$(uname)-$(uname -m).sh
 
     export PATH=/opt/conda/bin:$PATH
 
@@ -31,3 +31,4 @@ From: ubuntu:latest
     export PATH=/opt/conda/bin:$PATH
     export LIBRARY_PATH=$CONDA_PREFIX/lib:$LIBRARY_PATH
     export LD_LIBRARY_PATH=${CONDA_PREFIX}/lib:${LD_LIBRARY_PATH}
+
