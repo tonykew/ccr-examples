@@ -2,12 +2,11 @@
 
 ## This file is intended to serve as a template to be downloaded and modified for your use case.
 ## For more information, refer to the following resources whenever referenced in the script-
-## README- https://github.com/ubccr/ccr-examples/tree/main/slurm/README.md
+## README- https://github.com/ubccr/ccr-examples/tree/main/README.md
 ##  DOCUMENTATION- https://docs.ccr.buffalo.edu/en/latest/hpc/jobs
 
 ## Select a cluster, partition, qos and account that is appropriate for your use case
-## Available options and more details are provided in CCR's documentation:
-##   https://docs.ccr.buffalo.edu/en/latest/hpc/jobs/#slurm-directives-partitions-qos
+## Available options and more details are provided in README
 #SBATCH --cluster="[cluster]"
 #SBATCH --partition="[partition]"
 #SBATCH --qos="[qos]"
@@ -34,7 +33,7 @@
 if [ "${APPTAINER_NAME}" = "" ]
 then
   # Launch the container with this script
-  exec apptainer exec -B /util:/util,/scratch:/scratch,/vscratch:/vscratch,/projects:/projects \
+  exec apptainer exec -B /util:/util,/scratch:/scratch,/vscratch/grp-[YourGroupName]:/vscratch,/projects/academic/[YourGroupName]:/projects \
    /projects/academic/[YourGroupName]/OpenFOAM/OpenFOAM-13-$(arch).sif \
    bash "$(scontrol show job $SLURM_JOB_ID | awk -F= '/Command=/{print $2}')"
 fi

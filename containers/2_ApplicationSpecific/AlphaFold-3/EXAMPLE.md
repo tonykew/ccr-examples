@@ -8,7 +8,7 @@ Change to your AlphaFold-3 directory
 cd /projects/academic/[YourGroupName]/AlphaFold-3
 ```
 
-Then create the sample `fold_input.json` from [here](https://github.com/google-deepmind/alphafold3?tab=readme-ov-file#installation-and-running-your-first-prediction)
+Then create the sample `fold_input.json` from [the github example](https://github.com/google-deepmind/alphafold3?tab=readme-ov-file#installation-and-running-your-first-prediction)
 
 ```
 mkdir -p ./af_input ./af_input_inference ./af_output
@@ -46,7 +46,7 @@ Then run the AlphaFold-3 container:
 
 ```
 apptainer shell \
- -B /projects:/projects,/scratch:/scratch,/util:/util,/vscratch:/vscratch \
+ -B /projects/academic/[YourGroupName]:/projects,/scratch:/scratch,/util:/util,/vscratch/grp-[YourGroupName]:/vscratch \
  ./AlphaFold-3-$(arch).sif
 ```
 
@@ -157,7 +157,7 @@ Then run the AlphaFold-3 container (with nvidia GPU support):
 
 ```
 apptainer shell \
- -B /projects:/projects,/scratch:/scratch,/util:/util,/vscratch:/vscratch \
+ -B /projects/academic/[YourGroupName]:/projects,/scratch:/scratch,/util:/util,/vscratch/grp-[YourGroupName]:/vscratch \
  --nv \
  ./AlphaFold-3-$(arch).sif
 ```

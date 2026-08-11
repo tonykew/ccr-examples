@@ -16,13 +16,13 @@ srun --jobid="${SLURM_JOB_ID}" --export=HOME,TERM,SHELL --pty /bin/bash --login
 sample outout:
 
 > ```
-> salloc: Pending job allocation 20812210
-> salloc: job 20812210 queued and waiting for resources
-> salloc: job 20812210 has been allocated resources
-> salloc: Granted job allocation 20812210
+> salloc: Pending job allocation [JobID]
+> salloc: job [JobID] queued and waiting for resources
+> salloc: job [JobID] has been allocated resources
+> salloc: Granted job allocation [JobID]
 > salloc: Waiting for resource configuration
-> salloc: Nodes cpn-v14-19 are ready for job
-> CCRusername@cpn-v14-19:~$
+> salloc: Nodes [NodeID] are ready for job
+> CCRusername@[NodeID]:~$
 > ```
 
 Change to your AlphaFold-3 directory
@@ -89,17 +89,6 @@ rm "${tmp_file}"
 srun --jobid="${SLURM_JOB_ID}" --export=HOME,TERM,SHELL --pty /bin/bash --login
 ```
 
-sample outout:
-
-> ```
-> salloc: Pending job allocation 20815431
-> salloc: job 20815431 queued and waiting for resources
-> salloc: job 20815431 has been allocated resources
-> salloc: Granted job allocation 20815431
-> salloc: Waiting for resource configuration
-> salloc: Nodes cpn-v14-19 are ready for job
-> ```
-
 Change to your AlphaFold-3 directory
 
 ```
@@ -116,7 +105,7 @@ mkdir -p ./af_input ./af_input_inference ./af_output
 
 ```
 apptainer shell \
- -B /projects:/projects,/scratch:/scratch,/util:/util,/vscratch:/vscratch \
+ -B /projects/academic/[YourGroupName]:/projects,/scratch:/scratch,/util:/util,/vscratch/grp-[YourGroupName]:/vscratch \
  --nv \
  ./AlphaFold-3-$(arch).sif
 ```

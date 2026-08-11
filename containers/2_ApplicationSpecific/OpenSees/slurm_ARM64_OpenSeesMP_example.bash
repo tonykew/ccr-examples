@@ -2,7 +2,7 @@
 
 ## This file is intended to serve as a template to be downloaded and modified for your use case.
 ## For more information, refer to the following resources whenever referenced in the script-
-## README- https://github.com/ubccr/ccr-examples/tree/main/slurm/README.md
+## README- https://github.com/ubccr/ccr-examples/tree/main/README.md
 ##  DOCUMENTATION- https://docs.ccr.buffalo.edu/en/latest/hpc/jobs
 
 
@@ -47,7 +47,7 @@ srun --mpi=pmix \
  --nodes=${SLURM_NNODES} \
  --ntasks-per-node=${SLURM_NTASKS_PER_NODE} \
  $(which apptainer) exec \
- -B /util:/util,/scratch:/scratch,/projects:/projects \
+ -B /util:/util,/scratch:/scratch,/projects/academic/[YourGroupName]:/projects \
  --sharens \
  /path/to/OpenSees-$(arch).sif \
  OpenSeesMP Example.tcl

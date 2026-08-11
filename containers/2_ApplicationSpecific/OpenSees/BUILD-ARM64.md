@@ -15,15 +15,14 @@ srun --jobid="${SLURM_JOB_ID}" --export=HOME,TERM,SHELL --pty /bin/bash --login
 
 sample outout:
 
-> ```
-> salloc: Pending job allocation 20820866
-> salloc: job 20820866 queued and waiting for resources
-> salloc: job 20820866 has been allocated resources
-> salloc: Granted job allocation 20820866
-> salloc: Waiting for resource configuration
-> salloc: Nodes cpn-v14-17 are ready for job
-> CCRusername@cpn-v14-17:~$
-> ```
+```
+salloc: Pending job allocation [JobID]
+salloc: job [JobID] queued and waiting for resources
+salloc: job [JobID] has been allocated resources
+salloc: Granted job allocation [JobID]
+salloc: Nodes [NodeID] are ready for job
+CCRusername@[NodeID]:~$
+```
 
 Change to your OpenSees directory
 The "OpenSees.def" file will already be in the directory if you have already built
@@ -65,7 +64,7 @@ exit
 sample output:
 
 > ```
-> CCRusername@login1$ 
+> CCRusername@login1$
 > ```
 
 End the Slurm job
@@ -88,18 +87,6 @@ SLURM_JOB_ID="$(head -1 "${tmp_file}" | awk '{print $NF}')"
 rm "${tmp_file}"
 srun --jobid="${SLURM_JOB_ID}" --export=HOME,TERM,SHELL --pty /bin/bash --login
 ```
-
-sample outout:
-
-> ```
-> salloc: Pending job allocation 20820982
-> salloc: job 20820982 queued and waiting for resources
-> salloc: job 20820982 has been allocated resources
-> salloc: Granted job allocation 20820982
-> salloc: Waiting for resource configuration
-> salloc: Nodes cpn-v14-17 are ready for job
-> ```
-
 Change to your OpenSees directory
 
 ```
@@ -109,13 +96,13 @@ cd /projects/academic/[YourGroupName]/OpenSees
 ...then start the OpenSees container instance
 
 ```
-apptainer shell -B /util:/util,/scratch:/scratch,/projects:/projects OpenSees-$(arch).sif 
+apptainer shell -B /util:/util,/scratch:/scratch,/projects/academic/[YourGroupName]:/projects OpenSees-$(arch).sif
 ```
 
 expected output:
 
 > ```
-> Apptainer> 
+> Apptainer>
 > ```
 
 The following command is run from the "Apptainer> " prompt
@@ -127,18 +114,18 @@ OpenSees
 expected output:
 
 > ```
-> 
-> 
+>
+>
 >          OpenSees -- Open System For Earthquake Engineering Simulation
 >                  Pacific Earthquake Engineering Research Center
 >                         Version 3.7.2 64-Bit
-> 
+>
 >       (c) Copyright 1999-2016 The Regents of the University of California
 >                               All Rights Reserved
 >   (Copyright and Disclaimer @ http://www.berkeley.edu/OpenSees/copyright.html)
-> 
-> 
-> OpenSees > 
+>
+>
+> OpenSees >
 > ```
 
 Exit OpenSees
@@ -150,7 +137,7 @@ exit
 expected output:
 
 > ```
-> Apptainer> 
+> Apptainer>
 > ```
 
 Exit the Apptainer container instance
@@ -162,7 +149,7 @@ exit
 sample outout:
 
 > ```
-> CCRusername@cpn-v14-19$ 
+> CCRusername@cpn-v14-19$
 > ```
 
 Exit the Slurm interactive session
@@ -174,7 +161,7 @@ exit
 sample output:
 
 > ```
-> CCRusername@login1$ 
+> CCRusername@login1$
 > ```
 
 End the Slurm job

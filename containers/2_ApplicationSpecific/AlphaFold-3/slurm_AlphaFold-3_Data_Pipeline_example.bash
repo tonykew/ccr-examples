@@ -2,12 +2,11 @@
 
 ## This file is intended to serve as a template to be downloaded and modified for your use case.
 ## For more information, refer to the following resources whenever referenced in the script-
-## README- https://github.com/ubccr/ccr-examples/tree/main/slurm/README.md
+## README- https://github.com/ubccr/ccr-examples/tree/main/README.md
 ## DOCUMENTATION- https://docs.ccr.buffalo.edu/en/latest/hpc/jobs
 
 ## Select a cluster, partition, qos and account that is appropriate for your use case
-## Available options and more details are provided in CCR's documentation:
-##   https://docs.ccr.buffalo.edu/en/latest/hpc/jobs/#slurm-directives-partitions-qos
+## Available options and more details are provided in README
 #SBATCH --cluster="[cluster]"
 #SBATCH --partition="[partition]"
 #SBATCH --qos="[qos]"
@@ -43,7 +42,7 @@ mkdir -p ./af_input_inference ./af_output
 
 ## Run the Data Pipeline
 apptainer run \
- -B /projects:/projects,/scratch:/scratch,/util:/util,/vscratch:/vscratch \
+ -B /projects/academic/[YourGroupName]:/projects,/scratch:/scratch,/util:/util,/vscratch/grp-[YourGroupName]:/vscratch \
  ./AlphaFold-3-$(arch).sif \
  python3 "/app/alphafold/run_alphafold.py" \
  --db_dir="/util/software/data/alphafold3/" \
@@ -61,7 +60,7 @@ then
 fi
 
 ## get the output directory name for the Inference run
-AlphaFold_Inference_Input_Dir="$(apptainer exec -B ,/projects:/projects ./AlphaFold-3-$(arch).sif python3 -c "exec(open('/app/alphafold/src/alphafold3/common/folding_input.py', 'r').read()); inference_input_dir = Input(name=\"$(jq -r '.name' "${input_dir}/"*.json)\", chains=[], rng_seeds=[0]); print ('./af_input_inference/' + inference_input_dir.sanitised_name())" 2>&1 | tail -1)"
+AlphaFold_Inference_Input_Dir="$(apptainer exec -B /projects/academic/[YourGroupName]:/projects ./AlphaFold-3-$(arch).sif python3 -c "exec(open('/app/alphafold/src/alphafold3/common/folding_input.py', 'r').read()); inference_input_dir = Input(name=\"$(jq -r '.name' "${input_dir}/"*.json)\", chains=[], rng_seeds=[0]); print ('./af_input_inference/' + inference_input_dir.sanitised_name())" 2>&1 | tail -1)"
 
 ## submit an Inference job with the output from this Data Pipeline run
 echo "Submitting Inference job with the input directory \"${AlphaFold_Inference_Input_Dir}\""
