@@ -127,9 +127,9 @@ export APPTAINER_CACHEDIR="${SLURMTMPDIR}"
 apptainer build \
  --build-arg TMPDIR="${SLURMTMPDIR}" \
  --build-arg INSTALL_CD_BASENAME="ANSYS2026R1_LINX64_DISK" \
- --bind /scratch:/scratch \
+ --bind "/scratch":"/scratch" \
  --bind "$(pwd)":"/tmp/installer_dir" \
- ANSYS-$(arch).sif ANSYS.def
+ "ANSYS-$(arch).sif" "ANSYS.def"
 ```
 
 Sample truncated output:

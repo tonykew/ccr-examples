@@ -68,10 +68,10 @@ export CCR_GROUP="[YourGroupName]"
 
 ```bash
 vglrun apptainer run --nv --no-env=XDG_DATA_DIRS --writable-tmpfs \
- --bind /util:/util,/scratch:/scratch \
- --bind /projects/academic/${CCR_GROUP}:/projects/academic/${CCR_GROUP} \
- --bind /util/software/licenses/ansyslmd.ini:/opt/ansys_inc/shared_files/licensing/ansyslmd.ini:ro \
- /util/software/containers/x86_64/ANSYS-2026_R1-x86_64.sif \
+ --bind "/util":"/util","/scratch":"/scratch" \
+ --bind "/projects/academic/${CCR_GROUP}":"/projects/academic/${CCR_GROUP}" \
+ --bind "/util/software/licenses/ansyslmd.ini":"/opt/ansys_inc/shared_files/licensing/ansyslmd.ini":ro \
+ "/util/software/containers/x86_64/ANSYS-2026_R1-x86_64.sif" \
  cfx5
 ```
 
@@ -79,5 +79,15 @@ You can replace "cfx5" in the example above with any of the following:
 cfx5launch, cfx5pre, cfx5solve, cfx5posta, fluent, icemcfd, cfxtg, runSherlock, runwb2
 
 Note that, currently, "icepak" does not run in GUI mode, but the non GUI
-"icepak_batch" can be used.
+"icepak_batch" can be used, for example:
+
+
+```bash
+apptainer run --nv --no-env=XDG_DATA_DIRS --writable-tmpfs \
+ --bind "/util":"/util","/scratch":"/scratch" \
+ --bind "/projects/academic/${CCR_GROUP}":"/projects/academic/${CCR_GROUP}" \
+ --bind "/util/software/licenses/ansyslmd.ini":"/opt/ansys_inc/shared_files/licensing/ansyslmd.ini":ro \
+ "/util/software/containers/x86_64/ANSYS-2026_R1-x86_64.sif" \
+ icepak_batch [...]
+```
 

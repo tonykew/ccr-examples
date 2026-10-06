@@ -7,22 +7,10 @@
 
 ##   Select a cluster, partition, qos and account that is appropriate for your use case
 ##   Available options and more details are provided in README
-###SBATCH --cluster=[cluster]
-###SBATCH --partition=[partition]
-###SBATCH --qos=[qos]
-###SBATCH --account=[SlurmAccountName]
-
-##SBATCH --cluster="ub-hpc"
-##SBATCH --partition="debug"
-##SBATCH --qos="debug"
-
-#SBATCH --cluster="alpha"
-#SBATCH --partition="general-compute"
-#SBATCH --qos="general-compute"
-## save the GPU nodes for GPU specific jobs
-#SBATCH --exclude=cpn-gpu-[1,2]
-
-#SBATCH --account="ccradmintest"
+#SBATCH --cluster=[cluster]
+#SBATCH --partition=[partition]
+#SBATCH --qos=[qos]
+#SBATCH --account=[SlurmAccountName]
 
 ##   Job runtime limit. Format- dd-hh:mm:ss
 #SBATCH --time=08:00:00
@@ -39,8 +27,9 @@
 #SBATCH --ntasks-per-node=16
 
 ##   Specify real memory required per node. Default units are megabytes
-###SBATCH --mem=64000
-#SBATCH --mem=0 --exclusive
+#SBATCH --mem=128000
+
+export CCR_GROUP="[YourGroupName]"
 
 ##   Intel MPI with Shared memory
 module load iimpi
@@ -63,10 +52,10 @@ MODEL="i_team3_richardson.k"
 # --nodes=${SLURM_NNODES} \
 # --ntasks-per-node=${SLURM_NTASKS_PER_NODE} \
 # apptainer run --nv --no-env=XDG_DATA_DIRS --writable-tmpfs \
-# --bind /util:/util,/scratch:/scratch \
-# --bind /projects/academic/ccradmintest:/projects/academic/ccradmintest \
-# --bind /util/software/licenses/ansyslmd.ini:/opt/ansys_inc/shared_files/licensing/ansyslmd.ini:ro \
-# /util/software/containers/x86_64/ANSYS-2026_R1-x86_64.sif \
+# --bind "/util":"/util","/scratch":"/scratch" \
+# --bind "/projects/academic/${CCR_GROUP}":"/projects/academic/${CCR_GROUP}" \
+# --bind "/util/software/licenses/ansyslmd.ini":"/opt/ansys_inc/shared_files/licensing/ansyslmd.ini":ro \
+# "/util/software/containers/x86_64/ANSYS-2026_R1-x86_64.sif" \
 # bash -c "LD_LIBRARY_PATH=/opt/ansys_inc/v261/tp/MPI/Intel/2018.3.222/linx64/lib \
 #  exec lsdyna_sp_mpp.e ncpu=-${SLURM_CPUS_PER_TASK} i=${MODEL}"
 
@@ -75,10 +64,10 @@ srun --mpi=pmi2 \
  --nodes=${SLURM_NNODES} \
  --ntasks-per-node=${SLURM_NTASKS_PER_NODE} \
  apptainer run --nv --no-env=XDG_DATA_DIRS --writable-tmpfs \
- --bind /util:/util,/scratch:/scratch \
- --bind /projects/academic/ccradmintest:/projects/academic/ccradmintest \
- --bind /util/software/licenses/ansyslmd.ini:/opt/ansys_inc/shared_files/licensing/ansyslmd.ini:ro \
- /util/software/containers/x86_64/ANSYS-2026_R1-x86_64.sif \
+ --bind "/util":"/util","/scratch":"/scratch" \
+ --bind "/projects/academic/${CCR_GROUP}":"/projects/academic/${CCR_GROUP}" \
+ --bind "/util/software/licenses/ansyslmd.ini":"/opt/ansys_inc/shared_files/licensing/ansyslmd.ini":ro \
+ "/util/software/containers/x86_64/ANSYS-2026_R1-x86_64.sif" \
  bash -c "LD_LIBRARY_PATH=/opt/ansys_inc/v261/tp/MPI/Intel/2018.3.222/linx64/lib \
   exec lsdyna_dp_mpp.e ncpu=-${SLURM_CPUS_PER_TASK} i=${MODEL}"
 
