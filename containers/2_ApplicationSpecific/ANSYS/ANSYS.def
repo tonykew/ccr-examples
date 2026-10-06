@@ -1,0 +1,284 @@
+Bootstrap: docker
+From: ubuntu:24.04
+
+#
+# Build uses two variables, the common part of the install CD .iso filenames
+# and a temporary directory into which all the CDs will be expanded - this
+# will need ~100GB of free space.
+#
+# Both "INSTALL_CD_BASENAME" and "TMPDIR" must be defined
+#
+# For example:
+#
+#  apptainer build \
+#   --build-arg TMPDIR="${SLURMTMPDIR}" \
+#   --build-arg INSTALL_CD_BASENAME="ANSYS2026R1_LINX64_DISK" \
+#   --bind "$(pwd)":"/tmp/installer_dir" \
+#   ANSYS-x86_64.sif ANSYS.def
+#
+#
+# NOTE: it is possible to hard code the license server information in the .sif
+#  file, but this is ill-advised.
+#  To do so, add the following build option(s):
+#
+#   --build-arg FLEXLM_LICENSING_SERVER="my.licensing.server"
+#
+#      ...and, if not using the default ports:
+#
+#   --build-arg ANSYS_LICENSING_PORT="2345"
+#   --build-arg FLEXLM_LICENSING_PORT="3456"
+#
+#  Instead, leave the license server undefined, then to run ANSYS progams
+#  create a license file e.g. 
+#
+#    $ cat CCR-ansyslmd.ini
+#    SERVER=[port_number]@my.license.server.hostname
+#    $
+#
+#    Or for multiple license servers
+#
+#    $ cat CCR-ansyslmd.ini
+#    SERVER=[port_number]@my.license.server.hostname:[port_number]@my.second.license.server.hostname:[port_number]@my.third.license.server.hostname
+#    $
+#
+#  and bind mount the file to /opt/ansys_inc/shared_files/licensing/ansyslmd.ini
+#  for the Apptainer run e.g.
+# 
+#    $ apptainer run \
+#     --bind $(pwd)/CCR-ansyslmd.ini:/opt/ansys_inc/shared_files/licensing/ansyslmd.ini:ro \
+#     [...]
+#   
+
+%arguments
+    TMPDIR=""
+    INSTALL_CD_BASENAME=""
+    ANSYS_LICENSING_PORT="2325"
+    FLEXLM_LICENSING_PORT="1055"
+    FLEXLM_LICENSING_SERVER=""
+
+%setup 
+  # create mountpoint for /scratch during the build (for ${SLURMTMPDIR})
+  mkdir "${APPTAINER_ROOTFS}/scratch"
+
+%post -c /bin/bash
+
+set -x
+
+  # Bail early if the install CDs are missing
+  export INSTALL_CD_BASENAME="{{ INSTALL_CD_BASENAME }}"
+  if ! ls /tmp/installer_dir/${INSTALL_CD_BASENAME}*.iso > /dev/null 2>&1
+  then
+    echo "The basename of the ANSYS CD .iso files must be passed to the build command" >&2
+    ecoh "amd the .iso files must be in the current directory" >&2
+    echo "e.g." >&2
+    echo "" >&2
+    echo "apptainer build \\" >&2 
+    echo " --build-arg INSTALL_SCRIPTINSTALL_CD_BASENAME=\"ANSYS2026R1_LINX64_DISK\" \\">&2
+    echo " --build-arg TMPDIR=\"\${SLURMTMPDIR}\" \\">&2
+    echo " --bind \"\$(pwd)\":\"/tmp/installer_dir\" \\" >&2
+    echo " ANSYS-x86_64.sif ANSYS.def" >&2
+    exit 1
+  fi
+
+  # Make sure TMPDIR is set and that the intial tarball expansion directory exists
+  export TMPDIR="{{ TMPDIR }}"
+  if [ "${TMPDIR}" = "" ]
+  then
+    echo "The build variable TMPDIR must be set and passed to apptainer e.g." >&2
+    echo "" >&2
+    echo "apptainer build \\" >&2
+    echo " --build-arg TMPDIR=\"\${SLURMTMPDIR}\" \\">&2
+    echo " --build-arg INSTALL_SCRIPT=\"\$(pwd)/2026R1LinuxAnsysInstaller.sh\" \\">&2 
+    echo " --bind \"\$(pwd)\":\"/tmp/installer_dir\" \\" >&2
+    echo " ANSYS-x86_64.sif ANSYS.def" >&2
+    exit 1
+  fi
+  mkdir -p "${TMPDIR}/ANSYS"
+
+  # Licensing settings
+  ANSYS_LICENSING_PORT="{{ ANSYS_LICENSING_PORT }}"
+  FLEXLM_LICENSING_PORT="{{ FLEXLM_LICENSING_PORT }}"
+  FLEXLM_LICENSING_SERVER="{{ FLEXLM_LICENSING_SERVER }}"
+
+  if [ "${FLEXLM_LICENSING_SERVER}" != "" ]
+  then
+    echo "ANSYS_LICENSING_PORT=\"${ANSYS_LICENSING_PORT}\""
+    echo "FLEXLM_LICENSING_PORT=\"${FLEXLM_LICENSING_PORT}\""
+    echo "FLEXLM_LICENSING_SERVER=\"${FLEXLM_LICENSING_SERVER}\""
+  fi
+
+  # Set the timezone, if unset
+  test -h /etc/localtime || ln -fs /usr/share/zoneinfo/America/New_York /etc/localtime
+
+  cp /etc/apt/sources.list /etc/apt/sources.list~
+  sed -E -i 's/^# deb-src /deb-src /' /etc/apt/sources.list
+  apt-get -y update
+
+  # Install man & man pages - this section can be removed if not needed
+  # NOTE: Do this before installing anything else so their man pages are installed
+  sed -e '\|/usr/share/man|s|^#*|#|g' -i /etc/dpkg/dpkg.cfg.d/excludes
+  DEBIAN_FRONTEND=noninteractive apt-get -y install apt-utils groff dialog man-db manpages manpages-posix manpages-dev
+  rm -f /usr/bin/man
+  dpkg-divert --quiet --remove --rename /usr/bin/man
+
+  # O/S package updates:
+  DEBIAN_FRONTEND=noninteractive apt-get -y upgrade
+
+  DEBIAN_FRONTEND=noninteractive apt-get -y install \
+   tzdata \
+   locales \
+   csh \
+   tcsh \
+   unzip \
+   wget \
+   gawk \
+   build-essential \
+   autoconf \
+   automake \
+   pkg-config \
+   gfortran \
+   python3 \
+   python3-pip \
+   python3-setuptools \
+   python3-sphinx \
+   python3-sphinx-rtd-theme \
+   python-is-python3 \
+   zstd \
+   gnulib \
+   libssl-dev \
+   zlib1g-dev \
+   libbz2-dev \
+   libncurses-dev \
+   liblzma-dev \
+   liblz4-tool \
+   libcurl4-gnutls-dev \
+   libdeflate-dev \
+   pax-utils \
+   libmpfr-dev \
+   libgmp3-dev \
+   libmpc-dev \
+   x11-apps \
+   xdg-utils \
+   libgtk-3-dev \
+   libgtk-4-dev \
+   libxrender1 \
+   libxtst6 \
+   libxi6 \
+   libswt-gtk-4-java \
+   libwebkit2gtk-4.1-0 \
+   libwebkitgtk-6.0-4 \
+   libatomic1 \
+   libopengl0 \
+   libcublas12 \
+   ubuntu-desktop \
+   libjpeg62 \
+   libnsl2 \
+   libxcb-xinerama0 \
+   libxcb-cursor0 \
+   libcudart12 \
+   libnvidia-compute-610 \
+   libglapi-amber \
+   libhsa-runtime64-1 \
+   libibmad5 \
+   libibumad3 \
+   libllvm19 \
+   libmunge2 \
+   libnccl2 \
+   librccl1 \
+   librdmacm1t64 \
+   libtbb12 \
+   libtirpc-dev \
+   libucx0 \
+   libxcb-xinput0 \
+   libxm4 \
+   ocl-icd-opencl-dev \
+   xfonts-75dpi \
+   mesa-utils \
+   7zip \
+   patchelf \
+   less \
+   curl \
+   jq \
+   nano \
+   vim \
+   apt-file
+
+  # NOTE: apt-file is generally not needed to run, but can be useful during development
+  apt-file update
+
+  # These steps are necessary to configure Perl and can cause issues with Python if omitted
+  sed -i -e 's/# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+  dpkg-reconfigure --frontend=noninteractive locales
+  update-locale LANG=en_US.UTF-8
+
+  export LANG=en_US.UTF-8
+
+  # For vglrun & associated libraries install the latest VirtualGL from github
+  cd /root
+  curl -OL https://github.com/VirtualGL/virtualgl/releases/download/3.1.5/virtualgl_3.1.5_amd64.deb
+  dpkg -i virtualgl_3.1.5_amd64.deb
+  rm virtualgl_3.1.5_amd64.deb
+
+  # Expand the install CDs
+  cd "${TMPDIR}/ANSYS"
+  for ISO in /tmp/installer_dir/${INSTALL_CD_BASENAME}*.iso
+  do
+    # Note: "-aos" == Skip extracting of existing files
+    7z x -aos "${ISO}"
+  done
+
+  # Install ANSYS
+  extra_args=""
+  # If ${FLEXLM_LICENSING_SERVER] is set, add licenseing settings to the
+  #  install command
+  if [ "${FLEXLM_LICENSING_SERVER}" != "" ]
+  then
+    extra_args="-licserverinfo ${ANSYS_LICENSING_PORT}:${FLEXLM_LICENSING_PORT}:${FLEXLM_LICENSING_SERVER}"
+  fi
+  bash ./INSTALL ${extra_args} -silent
+
+  # The install should create the "ansset.ini" file, but if not:
+  revn="$(find /opt/ansys_inc/ -maxdepth 1 -name 'v[0-9]*' | sed -E 's/^.*\/v([0-9]+)$/\1/')"
+  if ! [ -f "/opt/ansys_inc/v${revn}/ansys/bin/ansset.ini" ]
+  then
+    echo "creating \"/opt/ansys_inc/v${revn}/ansys/bin/ansset.ini\""
+    cat > "/opt/ansys_inc/v${revn}/ansys/bin/ansset.ini" << EOF
+#!/bin/bash
+export revn="${revn}"
+export export QR_PATH="v\${revn}"
+EOF
+    chmod 755 "/opt/ansys_inc/v${revn}/ansys/bin/ansset.ini"
+  fi
+
+%environment
+  #
+  # The SLURMTMPDIR environment variable is not available in this script, so
+  # grab SLURMTMPDIR if it is in /proc/$$/environ
+  grep -aq '\"SLURMTMPDIR=' /proc/$$/environ && export SLURMTMPDIR="$(grep -a '\"SLURMTMPDIR=' /proc/$$/environ | sed -E -e 's|^.*\"SLURMTMPDIR=||' -e 's|\".*$||' 
+)"
+  #
+  # Make sure TMPDIR exists and is a directory
+  uid="$(head -1 /proc/self/uid_map | awk '{print $2}')"
+  export TMPDIR="${SLURMTMPDIR:-/var/tmp}/tmp_${uid}"
+  mkdir -p "${TMPDIR}"
+  #
+  topbindir="$(find /opt/ansys_inc/ -maxdepth 1 -name 'v[0-9]*')"
+  export PATH="${topbindir}/ansys/bin:${topbindir}/ansys/bin/linx64:${topbindir}/ACP:${topbindir}/cfdpost:${topbindir}/CFX/bin:${topbindir}/fluent/bin:${topbindir}/icemcfd/linux64_amd/bin:${topbindir}/AnsysEM/icepak/bin.lnamd64:${topbindir}/Motion/solver:${topbindir}/polyflow/bin:${topbindir}/TurboGrid/bin:${topbindir}/sherlock:${topbindir}/Framework/bin/Linux64:/opt/ansys_inc/v261/AnsysEM:/opt/ansys_inc/shared_files/licensing/lic_admin:$PATH"
+  # Environment variables for icepak
+  export ICEPAK_ROOT="${topbindir}/AnsysEM/icepak"
+  # Environment variables for helic
+  export HELIC_ROOT=/opt/ansys_inc/v261/AnsysEM/helic
+  # Some MPI jobs fail without this:
+  export LSTC_LICENSE="ansys"
+
+%runscript
+  #!/bin/bash
+  export PS1="ANSYS$ "
+  # Library path for "icepak"
+  if echo "${1}" | grep -q "^icepak"
+  then
+    export LD_LIBRARY_PATH="$(find /opt/ansys_inc/ -maxdepth 1 -name 'v[0-9]*')/AnsysEM${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+  fi
+  # Exec passed command (required for Modal ENTRYPOINT compatibility)
+  exec "$@"
+
