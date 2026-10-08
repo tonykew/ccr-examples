@@ -92,7 +92,7 @@ Note that, currently, "icepak" does not run in GUI mode, but the non GUI
 ```bash
 apptainer run --nv --no-env=XDG_DATA_DIRS --writable-tmpfs \
  --bind "/util":"/util","/scratch":"/scratch" \
- --bind "/projects/academic/${CCR_GROUP}":"/projects/academic/${CCR_GROUP}" \
+ --bind "${PROJECTS_DIR}":"${PROJECTS_DIR}" \
  --bind "/util/software/licenses/ansyslmd.ini":"/opt/ansys_inc/shared_files/licensing/ansyslmd.ini":ro \
  "/util/software/containers/x86_64/ANSYS-2026_R1-x86_64.sif" \
  icepak_batch [...]
