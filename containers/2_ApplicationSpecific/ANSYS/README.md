@@ -146,7 +146,8 @@ container.
 
 ## Sample Slurm scripts
 
-[ANSYS LS-DYNA example batch script](https://raw.githubusercontent.com/ubccr/ccr-examples/refs/heads/main/containers/2_ApplicationSpecific/ANSYS/slurm_ANSYS_example.bash)  
+[ANSYS LS-DYNA example batch script](https://raw.githubusercontent.com/ubccr/ccr-examples/refs/heads/main/containers/2_ApplicationSpecific/ANSYS/ANSYS_lsdyna_single_node_MPI.bash)  
+[ANSYS LS-DYNA example batch script](https://raw.githubusercontent.com/ubccr/ccr-examples/refs/heads/main/containers/2_ApplicationSpecific/ANSYS/ANSYS_lsdyna_single_node_OpenMP.bash)  
 
 ## Documentation Resources
 

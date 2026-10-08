@@ -14,9 +14,12 @@ To run the GUI version of an application, use the [CCR OnDemand portal](https://
 Most of the GUI applications require a GPU to proveide GLX graphic support, as
 shown in the example below.  
 
-For example:
-
 Open a browser window to our [OnDemand portal](https://ondemand.ccr.buffalo.edu)
+and start a session with at least one GPU requested.  The first GPU will be
+used for VirtualGL graohics acceleration.  
+Note: If you request more than one GUI see the [CUDA section below](#graphics-acceleration-and-cuda-with-multiple-gpus
+
+For example:
 
 [UB-HPC & Faculty Cluster Desktop]
 
@@ -43,7 +46,7 @@ load VirtualGL with:
 
 ```bash
 module load gcc virtualgl
-export VGL_DISPLAY="$(ls -d /sys/bus/pci/devices/$(nvidia-smi --query-gpu=gpu_bus_id --format=csv,noheader | sed 's/^0000//' | tr '[:upper:]' '[:lower:]')/drm/card* | sed -E 's|^.*(card[0-9]+)$|/dev/dri/\1|')"
+export VGL_DISPLAY="$(ls -d /sys/bus/pci/devices/$(nvidia-smi --query-gpu=gpu_bus_id --format=csv,noheader | head -1 | sed 's/^0000//' | tr '[:upper:]' '[:lower:]')/drm/card* | sed -E 's|^.*(card[0-9]+)$|/dev/dri/\1|')"
 ```
 
 Note: If you want to verify that the VirtualGL acceleration is working, running
@@ -60,23 +63,27 @@ second:
 vglrun glxspheres64 
 ```
 
-This example runs the ANSYS GUI application "cfx5"
+Set "PROJECTS_DIR" to the path to your projects directory
+e.g.
 
 ```bash
-export CCR_GROUP="[YourGroupName]"
+export PROJECTS_DIR="/projects/academic/[YourGroupName]"
 ```
+
+This example runs the ANSYS GUI application "cfx5"
 
 ```bash
 vglrun apptainer run --nv --no-env=XDG_DATA_DIRS --writable-tmpfs \
  --bind "/util":"/util","/scratch":"/scratch" \
- --bind "/projects/academic/${CCR_GROUP}":"/projects/academic/${CCR_GROUP}" \
+ --bind "${PROJECTS_DIR}":"${PROJECTS_DIR}" \
  --bind "/util/software/licenses/ansyslmd.ini":"/opt/ansys_inc/shared_files/licensing/ansyslmd.ini":ro \
  "/util/software/containers/x86_64/ANSYS-2026_R1-x86_64.sif" \
  cfx5
 ```
 
 You can replace "cfx5" in the example above with any of the following:
-cfx5launch, cfx5pre, cfx5solve, cfx5posta, fluent, icemcfd, cfxtg, runSherlock, runwb2
+cfx5launch, cfx5pre, cfx5solve, cfx5posta, fluent, icemcfd, cfxtg, runSherlock,
+runwb2
 
 Note that, currently, "icepak" does not run in GUI mode, but the non GUI
 "icepak_batch" can be used, for example:
@@ -90,4 +97,38 @@ apptainer run --nv --no-env=XDG_DATA_DIRS --writable-tmpfs \
  "/util/software/containers/x86_64/ANSYS-2026_R1-x86_64.sif" \
  icepak_batch [...]
 ```
+
+## Graphics acceleration and CUDA with multiple GPUs
+
+If you start an OnDemand job with multiple GPUs and use VirtualGL for graphical
+acceleration, as our examples above do; you will likely want to use the first
+GPU exclusively for VirtualGL acceleration, and the other(s) for CUDA
+acceleration.  
+Note: Not all ANSYS applications support CUDA acceleration.  
+
+By default the CUDA_VISIBLE_DEVICES environment variable is set to list all the
+availabnle GPUs, for example:
+
+
+```bash
+echo ${CUDA_VISIBLE_DEVICES}
+```
+
+sample output for a two GPU job
+
+> ```
+> CUDA_VISIBLE_DEVICES=0,1
+> ```
+
+In our examples, the "export VGL_DISPLAY=[...]" line configures VirtualGL to
+use the first GPU, that is GPU numnber 0.  We will want to use GPU 
+number 1 (etc.) for CUDA use.  Hence:
+
+```bash
+export CUDA_VISIBLE_DEVICES=1
+```
+
+Note that, unfortunately, not all programs resepct this value, but generally
+the programs that don't will have command line option to secify the usable
+GPUs.
 
