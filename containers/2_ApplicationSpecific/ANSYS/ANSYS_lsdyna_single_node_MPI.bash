@@ -29,7 +29,8 @@
 ##   Specify real memory required per node. Default units are megabytes
 #SBATCH --mem=128000
 
-export CCR_GROUP="[YourGroupName]"
+# set the path ot your projects directory
+export PROJECTS_DIR="/projects/academic/[YourGroupName]"
 
 ##   Intel MPI with Shared memory
 module load iimpi
@@ -53,7 +54,7 @@ MODEL="i_team3_richardson.k"
 # --ntasks-per-node=${SLURM_NTASKS_PER_NODE} \
 # apptainer run --nv --no-env=XDG_DATA_DIRS --writable-tmpfs \
 # --bind "/util":"/util","/scratch":"/scratch" \
-# --bind "/projects/academic/${CCR_GROUP}":"/projects/academic/${CCR_GROUP}" \
+# --bind "${PROJECTS_DIR}":"${PROJECTS_DIR}" \
 # --bind "/util/software/licenses/ansyslmd.ini":"/opt/ansys_inc/shared_files/licensing/ansyslmd.ini":ro \
 # "/util/software/containers/x86_64/ANSYS-2026_R1-x86_64.sif" \
 # bash -c "LD_LIBRARY_PATH=/opt/ansys_inc/v261/tp/MPI/Intel/2018.3.222/linx64/lib \
@@ -65,7 +66,7 @@ srun --mpi=pmi2 \
  --ntasks-per-node=${SLURM_NTASKS_PER_NODE} \
  apptainer run --nv --no-env=XDG_DATA_DIRS --writable-tmpfs \
  --bind "/util":"/util","/scratch":"/scratch" \
- --bind "/projects/academic/${CCR_GROUP}":"/projects/academic/${CCR_GROUP}" \
+ --bind "${PROJECTS_DIR}":"${PROJECTS_DIR}" \
  --bind "/util/software/licenses/ansyslmd.ini":"/opt/ansys_inc/shared_files/licensing/ansyslmd.ini":ro \
  "/util/software/containers/x86_64/ANSYS-2026_R1-x86_64.sif" \
  bash -c "LD_LIBRARY_PATH=/opt/ansys_inc/v261/tp/MPI/Intel/2018.3.222/linx64/lib \
