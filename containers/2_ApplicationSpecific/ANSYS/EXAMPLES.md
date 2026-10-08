@@ -46,7 +46,7 @@ load VirtualGL with:
 
 ```bash
 module load gcc virtualgl
-export VGL_DISPLAY="$(ls -d /sys/bus/pci/devices/$(nvidia-smi --query-gpu=gpu_bus_id --format=csv,noheader | head -1 | sed 's/^0000//' | tr '[:upper:]' '[:lower:]')/drm/card* | sed -E 's|^.*(card[0-9]+)$|/dev/dri/\1|')"
+export VGL_DISPLAY="$(ls -d /sys/bus/pci/devices/$(nvidia-smi --query-gpu=gpu_bus_id --format=csv,noheader | tail -1 | sed 's/^0000//' | tr '[:upper:]' '[:lower:]')/drm/card* | sed -E 's|^.*(card[0-9]+)$|/dev/dri/\1|')"
 ```
 
 Note: If you want to verify that the VirtualGL acceleration is working, running
@@ -78,12 +78,12 @@ vglrun apptainer run --nv --no-env=XDG_DATA_DIRS --writable-tmpfs \
  --bind "${PROJECTS_DIR}":"${PROJECTS_DIR}" \
  --bind "/util/software/licenses/ansyslmd.ini":"/opt/ansys_inc/shared_files/licensing/ansyslmd.ini":ro \
  "/util/software/containers/x86_64/ANSYS-2026_R1-x86_64.sif" \
- cfx5
+ icemcfd
 ```
 
-You can replace "cfx5" in the example above with any of the following:
-cfx5launch, cfx5pre, cfx5solve, cfx5posta, fluent, icemcfd, cfxtg, runSherlock,
-runwb2
+You can replace "icemcfd" in the example above with any of the following:
+cfx5, cfx5launch, cfx5pre, cfx5solve, cfx5posta, fluent, icemcfd, cfxtg,
+runSherlock, runwb2
 
 Note that, currently, "icepak" does not run in GUI mode, but the non GUI
 "icepak_batch" can be used, for example:
@@ -101,7 +101,7 @@ apptainer run --nv --no-env=XDG_DATA_DIRS --writable-tmpfs \
 ## Graphics acceleration and CUDA with multiple GPUs
 
 If you start an OnDemand job with multiple GPUs and use VirtualGL for graphical
-acceleration, as our examples above do; you will likely want to use the first
+acceleration, as our examples above do; you will likely want to use the last
 GPU exclusively for VirtualGL acceleration, and the other(s) for CUDA
 acceleration.  
 Note: Not all ANSYS applications support CUDA acceleration.  
@@ -121,14 +121,16 @@ sample output for a two GPU job
 > ```
 
 In our examples, the "export VGL_DISPLAY=[...]" line configures VirtualGL to
-use the first GPU, that is GPU numnber 0.  We will want to use GPU 
-number 1 (etc.) for CUDA use.  Hence:
+use the last GPU, that is GPU numnber 1 in this case.  We will want to use the
+other GPU(s) for CUDA, in this case GPU number 0  
+For this example:
 
 ```bash
-export CUDA_VISIBLE_DEVICES=1
+export CUDA_VISIBLE_DEVICES=0
 ```
 
 Note that, unfortunately, not all programs resepct this value, but generally
 the programs that don't will have command line option to secify the usable
-GPUs.
+GPUs.  Also GPU 0 is the default first CUDA device, so this will still work for
+single CUDA GPU workloads that ignore CUDA_VISIBLE_DEVICES
 
