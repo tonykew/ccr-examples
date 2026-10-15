@@ -193,6 +193,7 @@ set -x
    libxm4 \
    ocl-icd-opencl-dev \
    xfonts-75dpi \
+   xfonts-100dpi \
    libmotif-dev \
    xterm \
    libqt5gui5 \
@@ -264,39 +265,47 @@ EOF
     chmod 755 "/opt/ansys_inc/v${revn}/ansys/bin/ansset.ini"
   fi
 
-  # icepak requires tk/tcl version 8.5.19
+  # icepak requires TK version 8.5.19, but Ubuntu noble ships with 8.6
+  # The icepak dir /opt/ansys_inc/v261/AnsysEM/icepak/lib/tk8.5.19
+  # only includes a few .tcl files - installing TK version 8.5.19 into
+  # this directory adds the missing base TK files.
   cd "${TMPDIR}"
+  topicepakdir="$(find /opt/ansys_inc/ -maxdepth 1 -name 'v[0-9]*')/AnsysEM/icepak"
+  # Download & configure TCL version 8.5.19, but don't install (already
+  # installed in /opt/ansys_inc/v261/AnsysEM/icepak/lib/tcl8.5.19 but we
+  # need some include files and a tclConfig.sh file with the correct paths
+  # to build TK version 8.5.19
   curl -LO "http://prdownloads.sourceforge.net/tcl/tcl8.5.19-src.tar.gz"
   gzip -dc "tcl8.5.19-src.tar.gz" | tar xf -
   rm "tcl8.5.19-src.tar.gz"
   cd "tcl8.5.19/unix"
   ./configure \
-   --prefix=/usr/local
-  make -j $(expr $(nproc) - 4)
-  make install
+   --prefix="${topicepakdir}/lib/tcl8.5.19" \
+   --exec-prefix="${topicepakdir}/lib/tcl8.5.19"
+  # copy the installed stub library here
+  cp "${topicepakdir}/lib/tcl8.5.19/lib/libtclstub8.5.a" .
   cd "${TMPDIR}"
+  # Install TK version 8.5.19 into the icepak dir
+  # /opt/ansys_inc/v261/AnsysEM/icepak/lib/tcl8.5.19
   curl -LO "http://prdownloads.sourceforge.net/tcl/tk8.5.19-src.tar.gz"
   gzip -dc "tk8.5.19-src.tar.gz" | tar xf -
   rm "tk8.5.19-src.tar.gz"
   cd "tk8.5.19/unix"
-  ./configure \
-   --with-tcl=../../tcl8.5.19/unix \
-   --prefix=/usr/local
+  sed -i -e  '/^SCRIPT_INSTALL_DIR/s/$/.19/' \
+   -e '/^DEMO_INSTALL_DIR/s|)/|).19/|' Makefile.in
+  CFLAGS="-L${topicepakdir}/lib/tcl8.5.19/lib" \
+   ./configure --with-tcl=../../tcl8.5.19/unix \
+   --with-x \
+   --prefix="${topicepakdir}" \
+   --exec-prefix="${topicepakdir}" \
+   --bindir="${topicepakdir}/bin.lnamd64" \
+   --libdir="${topicepakdir}/lib/tk8.5.19/lib" \
+   --mandir="${topicepakdir}/lib/tk8.5.19/man" \
+   --includedir="${topicepakdir}/lib/tk8.5.19/include"
   make -j $(expr $(nproc) - 4)
   make install
   cd "${TMPDIR}"
   rm -rf "tcl8.5.19" "tk8.5.19"
-  topbindir="$(find /opt/ansys_inc/ -maxdepth 1 -name 'v[0-9]*')"
-  export ICEPAK_ROOT="${topbindir}/AnsysEM/icepak"
-  cd "/usr/local/lib/tk8.5"
-  find . -type d -exec mkdir -p "${ICEPAK_ROOT}/lib/tk8.5.19/{}" \;
-  find . -type f | while read file
-  do
-    if ! [ -f "${ICEPAK_ROOT}/lib/tk8.5.19/${file}" ]
-    then
-      ln -s "$(pwd)/${file}" "${ICEPAK_ROOT}/lib/tk8.5.19/${file}"
-    fi
-  done
 
 %environment
   #
