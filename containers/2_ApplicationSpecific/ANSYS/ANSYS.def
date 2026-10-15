@@ -28,16 +28,16 @@ From: ubuntu:24.04
 #   --build-arg ANSYS_LICENSING_PORT="2345"
 #   --build-arg FLEXLM_LICENSING_PORT="3456"
 #
-#  Instead, leave the license server undefined, then to run ANSYS progams
+#  Instead, leave the license server undefined; then, to run ANSYS progams,
 #  create a license file e.g. 
 #
-#    $ cat CCR-ansyslmd.ini
+#    $ cat ansyslmd.ini
 #    SERVER=[port_number]@my.license.server.hostname
 #    $
 #
-#    Or for multiple license servers
+#    Or, for multiple license servers:
 #
-#    $ cat CCR-ansyslmd.ini
+#    $ cat ansyslmd.ini
 #    SERVER=[port_number]@my.license.server.hostname:[port_number]@my.second.license.server.hostname:[port_number]@my.third.license.server.hostname
 #    $
 #
@@ -45,7 +45,7 @@ From: ubuntu:24.04
 #  for the Apptainer run e.g.
 # 
 #    $ apptainer run \
-#     --bind $(pwd)/CCR-ansyslmd.ini:/opt/ansys_inc/shared_files/licensing/ansyslmd.ini:ro \
+#     --bind $(pwd)/ansyslmd.ini:/opt/ansys_inc/shared_files/licensing/ansyslmd.ini:ro \
 #     [...]
 #   
 
@@ -193,7 +193,11 @@ set -x
    libxm4 \
    ocl-icd-opencl-dev \
    xfonts-75dpi \
+   libmotif-dev \
+   xterm \
+   libqt5gui5 \
    mesa-utils \
+   tk-dev \
    7zip \
    patchelf \
    less \
@@ -229,13 +233,23 @@ set -x
 
   # Install ANSYS
   extra_args=""
-  # If ${FLEXLM_LICENSING_SERVER] is set, add licenseing settings to the
+  # If ${FLEXLM_LICENSING_SERVER} is set, add licenseing settings to the
   #  install command
   if [ "${FLEXLM_LICENSING_SERVER}" != "" ]
   then
     extra_args="-licserverinfo ${ANSYS_LICENSING_PORT}:${FLEXLM_LICENSING_PORT}:${FLEXLM_LICENSING_SERVER}"
   fi
   bash ./INSTALL ${extra_args} -silent
+
+  # Fix some library dependencies
+  if ! [ -f "/usr/lib/libXm.so.3" ]
+  then
+    ln -s "/usr/lib/libXm.so.4.0.1" "/usr/lib/libXm.so.3"
+  fi
+  if ! [ -f "/usr/lib64/libXm.so.3" ]
+  then
+    ln -s /usr/lib64/libXm.so.4.0.1 /usr/lib64/libXm.so.3
+  fi
 
   # The install should create the "ansset.ini" file, but if not:
   revn="$(find /opt/ansys_inc/ -maxdepth 1 -name 'v[0-9]*' | sed -E 's/^.*\/v([0-9]+)$/\1/')"
@@ -249,6 +263,40 @@ export export QR_PATH="v\${revn}"
 EOF
     chmod 755 "/opt/ansys_inc/v${revn}/ansys/bin/ansset.ini"
   fi
+
+  # icepak requires tk/tcl version 8.5.19
+  cd "${TMPDIR}"
+  curl -LO "http://prdownloads.sourceforge.net/tcl/tcl8.5.19-src.tar.gz"
+  gzip -dc "tcl8.5.19-src.tar.gz" | tar xf -
+  rm "tcl8.5.19-src.tar.gz"
+  cd "tcl8.5.19/unix"
+  ./configure \
+   --prefix=/usr/local
+  make -j $(expr $(nproc) - 4)
+  make install
+  cd "${TMPDIR}"
+  curl -LO "http://prdownloads.sourceforge.net/tcl/tk8.5.19-src.tar.gz"
+  gzip -dc "tk8.5.19-src.tar.gz" | tar xf -
+  rm "tk8.5.19-src.tar.gz"
+  cd "tk8.5.19/unix"
+  ./configure \
+   --with-tcl=../../tcl8.5.19/unix \
+   --prefix=/usr/local
+  make -j $(expr $(nproc) - 4)
+  make install
+  cd "${TMPDIR}"
+  rm -rf "tcl8.5.19" "tk8.5.19"
+  topbindir="$(find /opt/ansys_inc/ -maxdepth 1 -name 'v[0-9]*')"
+  export ICEPAK_ROOT="${topbindir}/AnsysEM/icepak"
+  cd "/usr/local/lib/tk8.5"
+  find . -type d -exec mkdir -p "${ICEPAK_ROOT}/lib/tk8.5.19/{}" \;
+  find . -type f | while read file
+  do
+    if ! [ -f "${ICEPAK_ROOT}/lib/tk8.5.19/${file}" ]
+    then
+      ln -s "$(pwd)/${file}" "${ICEPAK_ROOT}/lib/tk8.5.19/${file}"
+    fi
+  done
 
 %environment
   #
@@ -277,7 +325,8 @@ EOF
   # Library path for "icepak"
   if echo "${1}" | grep -q "^icepak"
   then
-    export LD_LIBRARY_PATH="$(find /opt/ansys_inc/ -maxdepth 1 -name 'v[0-9]*')/AnsysEM${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+    export LD_LIBRARY_PATH="$(find "$(find "/opt/ansys_inc/" -maxdepth 1 -name 'v[0-9]*')/AnsysEM/commonfiles/CPython/" -maxdepth 1 -name '[0-9]*')/linx64/Release/python/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+    export TCLLIBPATH="$(find /opt/ansys_inc/ -maxdepth 1 -name 'v[0-9]*')/icemcfd/linux64_amd/lib/bwidget"
   fi
   # Exec passed command (required for Modal ENTRYPOINT compatibility)
   exec "$@"

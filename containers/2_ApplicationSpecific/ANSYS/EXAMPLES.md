@@ -70,7 +70,7 @@ e.g.
 export PROJECTS_DIR="/projects/academic/[YourGroupName]"
 ```
 
-This example runs the ANSYS GUI application "cfx5"
+This example runs the ANSYS GUI application "icemcfd"
 
 ```bash
 vglrun apptainer run --nv --no-env=XDG_DATA_DIRS --writable-tmpfs \
@@ -114,10 +114,10 @@ availabnle GPUs, for example:
 echo ${CUDA_VISIBLE_DEVICES}
 ```
 
-sample output for a two GPU job
+Sample output for a two GPU job:
 
 > ```
-> CUDA_VISIBLE_DEVICES=0,1
+> 0,1
 > ```
 
 In our examples, the "export VGL_DISPLAY=[...]" line configures VirtualGL to
