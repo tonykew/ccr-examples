@@ -58,9 +58,9 @@ From: ubuntu:24.04
 ###############################################################################
 #
 # Build uses thre variables, the installer script filename (which must be in
-# the current directory,) a valid AnsysID token and a temporary directory into
-# which all the files the installer will download will be stored - this can
-# need as much as ~100GB of free space.
+# the current directory,) a valid AnsysID token (from https://id.ansys.com)
+# and a temporary directory into which all the files the installer will
+# download will be stored - this can need as much as ~100GB of free space.
 #
 # "INSTALL_SCRIPT". "ANSYSID_TOKEN" and "TMPDIR" must be defined
 #
@@ -122,9 +122,6 @@ From: ubuntu:24.04
   mkdir "${APPTAINER_ROOTFS}/scratch"
 
 %post -c /bin/bash
-
-set -x
-
   # Set build install option variables passed with "--build-arg"
   export INSTALL_CD_BASENAME="{{ INSTALL_CD_BASENAME }}"
   export SERVICE_PACK_TARBALL="{{ SERVICE_PACK_TARBALL }}"

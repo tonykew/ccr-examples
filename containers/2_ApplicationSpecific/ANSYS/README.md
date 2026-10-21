@@ -12,14 +12,29 @@ UB provides an educational license for ANSYS.  The license is for
 All the [examples](./EXAMPLES.md) use the academic license file.
 
 
-CCR providses a pre-built ANSYS container:
+CCR providses a couple of pre-built ANSYS container:
+
+ANSYS release 2026 R1 - installed from CD (no service packs applied)
 
 ```bash
 /util/software/containers/x86_64/ANSYS-2026_R1-x86_64.sif
 ```
 
-If this container desn't fit your needs, for example, you want to create a smaller
-container file with a subset of the applications. you can use the following
+ANSYS release 2026 R1 - installed from CD, with Service Pack 4 applied
+
+```bash
+/util/software/containers/x86_64/ANSYS-2026_R1.04-x86_64.sif
+```
+
+The following link will always point to the lastest patched version:
+
+```bash
+/util/software/containers/x86_64/ANSYS-x86_64.sif 
+```
+
+
+If these containers don't fit your needs, for example, you want to create a smaller
+container file with a subset of the applications, you can use the following
 instructions to build an ANSYS container.
 
 
@@ -79,7 +94,7 @@ curl -L -o COMSOL64.def https://raw.githubusercontent.com/ubccr/ccr-examples/ref
 ```
 
 If you wish to install a subset of the appications, you can edit the .def file
-and change the ./INSTALL line.  For example, to install only lsdyna add
+and change the ./INSTALL line.  For example, to install only LS-DYNA add
 "-lsdyna" to the line:
 
 ```bash
@@ -91,7 +106,17 @@ and change the ./INSTALL line.  For example, to install only lsdyna add
 
 3. Build your container
 
-The build process requires the ANSYS .iso files e.g.
+There are three ways to install ANSYS - see the comments section at the top of
+the ANSYS.def file for more information
+
+CD images, Service Packs and the ANSYS installer script, can be downloaded
+from the [ANSYS customer website](https://customer.ansys.com)  
+The installer script install requires an AnsysID token from the [ANSYS ID Portal](https://id.ansys.com/)
+
+
+### CD image only install
+
+The CD build process requires the ANSYS .iso files e.g.
 
 ```bash
 ls -1 *.iso
@@ -118,9 +143,10 @@ Sample outout:
 In the case the base name for the CD is "ANSYS2026R1_LINX64_DISK" i.e. all the
 CD .iso files start with "ANSYS2026R1_LINX64_DISK"
 
-Building the ANSYS container can take up to two hours...
 This example uses INSTALL_CD_BASENAME="ANSYS2026R1_LINX64_DISK"
 based on the name of the .iso files as noted above.
+
+Building the ANSYS container takesabout one and a half hours...
 
 ```bash
 export APPTAINER_CACHEDIR="${SLURMTMPDIR}"
@@ -140,6 +166,69 @@ Sample truncated output:
 > INFO:    Creating SIF file...
 > INFO:    Build complete: ANSYS-x86_64.sif
 > ```
+
+
+### Service Pack install
+
+The build process requires the ANSYS CD .iso files as documented above, and an
+ANSYS Service Pack Tarball
+
+This example uses INSTALL_CD_BASENAME="ANSYS2026R1_LINX64_DISK" based
+on the CD .iso filenames as documented in the [CD image only install section](#cd-image-only-install).
+We also provide the Service Pack tarball name with
+SERVICE_PACK_TARBALL="ANSYS_2026R1.04_LINX64.tgz"
+
+Building the ANSYS container can take up to two hours...
+
+```bash
+export APPTAINER_CACHEDIR="${SLURMTMPDIR}"
+apptainer build \
+ --build-arg TMPDIR="${SLURMTMPDIR}" \
+ --build-arg INSTALL_CD_BASENAME="ANSYS2026R1_LINX64_DISK" \
+ --build-arg SERVICE_PACK_TARBALL="ANSYS_2026R1.04_LINX64.tgz" \
+ --bind "/scratch":"/scratch" \
+ --bind "$(pwd)":"/tmp/installer_dir" \
+ "ANSYS-$(arch).sif" "ANSYS.def"
+```
+
+Sample truncated output:
+
+> ```
+> [....]
+> INFO:    Adding environment to container
+> INFO:    Creating SIF file...
+> INFO:    Build complete: ANSYS-x86_64.sif
+> ```
+
+
+### ANSYS Installer script install
+
+The installer script installation requires the insrtaller script
+"AnsysInstaller.sh" and an AnsysID token from the [ANSYS ID Portal](https://id.ansys.com/)
+
+The installer script filename is passed to the build in the INSTALL_SCRIPT
+variable and the AnsysID token is passed in the ANSYSID_TOKEN variable
+
+```bash
+export APPTAINER_CACHEDIR="${SLURMTMPDIR}"
+apptainer build \
+ --build-arg TMPDIR="${SLURMTMPDIR}" \
+ --build-arg INSTALL_SCRIPT="AnsysInstaller.sh" \
+ --build-arg ANSYSID_TOKEN="_ansys_token_here_" \
+ --bind "/scratch":"/scratch" \
+ --bind "$(pwd)":"/tmp/installer_dir" \
+ "ANSYS-$(arch).sif" "ANSYS.def"
+```
+
+Sample truncated output:
+
+> ```
+> [....]
+> INFO:    Adding environment to container
+> INFO:    Creating SIF file...
+> INFO:    Build complete: ANSYS-x86_64.sif
+> ```
+
 
 See the [EXAMPLES file](./EXAMPLES.md) for information on running applications in fhe ANSYS
 container.  
