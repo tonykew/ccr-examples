@@ -113,8 +113,8 @@ vglrun apptainer run --nv --no-env=XDG_DATA_DIRS --writable-tmpfs \
 ```
 
 You can replace "icemcfd" in the example above with any of the following:
-ACP.sh, cfdpost, cfx5, cfx5launch, cfx5pre, cfx5solve, cfx5post, fensapiceGUI,
-fluent, cfxtg, mapdl, runSherlock, cfxtg, runwb2
+ACP.sh, cfdpost, cfx5, cfx5launch, cfx5pre, cfx5solve, cfx5post, cfxtg,
+fensapiceGUI, fluent, runSherlock, runwb2
 
 Note that, currently, "icepak" does not run in GUI mode, but the non GUI
 "icepak_batch" can be used as per the [Non GUI ANSYS Applications](#non-gui-ansys-applications) section.
