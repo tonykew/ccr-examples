@@ -44,9 +44,11 @@ A brief guide to building the ANSYS container follows:
 Please refer to CCR's [container documentation](https://docs.ccr.buffalo.edu/en/latest/howto/containerization/) for more detailed information on
 building and using Apptainer.
 
-The .def file is writtten to build an ANSYS container from CD .iso files.
-It is possible it could be re-written to use an installer file, however
-this is a different process and requires an ANSYS key.
+The .def file is writtten to build an ANSYS in one of three ways: 
+from CD .iso files, CD .iso files with a Service Pack tarball, and with
+an ANSYS installer scrtipt.  The latter is untested & requires access to
+https://id.ansys.com to generate an AnsysID token for the script to run,
+however this should work.
 
 
 1. Start an interactive job
@@ -90,7 +92,7 @@ cd /projects/academic/[YourGroupName]/ANSYS
 ...and fetch the .def file:
 
 ```bash
-curl -L -o COMSOL64.def https://raw.githubusercontent.com/ubccr/ccr-examples/refs/heads/main/containers/2_ApplicationSpecific/ANSYS/ANSYS.def
+curl -LO https://raw.githubusercontent.com/ubccr/ccr-examples/refs/heads/main/containers/2_ApplicationSpecific/ANSYS/ANSYS.def
 ```
 
 If you wish to install a subset of the appications, you can edit the .def file
@@ -230,8 +232,8 @@ Sample truncated output:
 > ```
 
 
-See the [EXAMPLES file](./EXAMPLES.md) for information on running applications in fhe ANSYS
-container.  
+See the [EXAMPLES file](./EXAMPLES.md) for information on running applications
+in an ANSYS container.  
 
 ## Sample Slurm scripts
 
