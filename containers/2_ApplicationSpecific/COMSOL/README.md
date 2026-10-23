@@ -48,119 +48,7 @@ COMSOL with MATLAB including all the UB licensed MATLAB products
 ```
 
 
-If these containers don't fit your needs, you can use the following
-instructions to build a COMSOL container.
-
-
-## Building the container
-
-A brief guide to building the COMSOL container follows:  
-Please refer to CCR's [container documentation](https://docs.ccr.buffalo.edu/en/latest/howto/containerization/) for more detailed information on building and using Apptainer.
-
-1. Start an interactive job
-
-Apptainer is not available on the CCR login nodes and the compile nodes may not provide enough resources for you to build a container.  We recommend requesting an interactive job on a compute node to conduct this build process.  
-Note: a GPU is NOT needed to build the COMSOL container  
-See CCR docs for more info on [running jobs](https://docs.ccr.buffalo.edu/en/latest/hpc/jobs/#interactive-job-submission)
-
-```bash
-export SBATCH_ACCOUNT="[SlurmAccountName]"
-```
-
-```bash
-salloc --cluster=ub-hpc --partition=debug --qos=debug --mem=0 --exclusive \
- --time=01:00:00
-```
-
-Sample outout:
-
-> ```
-> salloc: Granted job allocation 25260020
-> salloc: Nodes cpn-b04-32-01 are ready for job
-> CCRusername@cpn-b04-32-01$ 
-> ```
-
-2. Navigate to your build directory and use the Slurm job local temporary directory for cache
-
-You should now be on the compute node allocated to you.  
-In this example we're using our project directory for our build directory.  
-
-Change to your COMSOL directory
-
-```bash
-cd /projects/academic/[YourGroupName]/COMSOL
-```
-
-We have provided three different build examples:  
-"COMSOL" only  
-"COMSOL" with a minimal "MATLAB" install including the "MATLAB Parallel Computing Toolbox"  
-"COMSOL" with "MATLAB" including all the UB licenses MATLAB products
-
-
-Select ONE of the following:
-
-### COMSOL (without MATLAB)
-
-```bash
-curl -LO https://raw.githubusercontent.com/ubccr/ccr-examples/refs/heads/main/containers/2_ApplicationSpecific/COMSOL/matlab_lmutil_x86_64
-curl -LO https://raw.githubusercontent.com/ubccr/ccr-examples/refs/heads/main/containers/2_ApplicationSpecific/COMSOL/comsol64-setupconfig.ini
-curl -LO https://raw.githubusercontent.com/ubccr/ccr-examples/refs/heads/main/containers/2_ApplicationSpecific/COMSOL/COMSOL64.def
-```
-
-### COMSOL with minimal MATLAB including (only) the "MATLAB Parallel Computing Toolbox"
-
-```bash
-curl -LO https://raw.githubusercontent.com/ubccr/ccr-examples/refs/heads/main/containers/2_ApplicationSpecific/COMSOL/matlab_lmutil_x86_64
-curl -LO https://raw.githubusercontent.com/ubccr/ccr-examples/refs/heads/main/containers/2_ApplicationSpecific/COMSOL/comsol64-setupconfig.ini
-curl -L -o COMSOL64.def https://raw.githubusercontent.com/ubccr/ccr-examples/refs/heads/main/containers/2_ApplicationSpecific/COMSOL/COMSOL64-MATLAB-R2025b.def
-```
-
-### COMSOL with MATLAB including all the UB licensed MATLAB products
-
-```bash
-curl -LO https://raw.githubusercontent.com/ubccr/ccr-examples/refs/heads/main/containers/2_ApplicationSpecific/COMSOL/matlab_lmutil_x86_64
-curl -LO https://raw.githubusercontent.com/ubccr/ccr-examples/refs/heads/main/containers/2_ApplicationSpecific/COMSOL/comsol64-setupconfig.ini
-curl -L -o COMSOL64.def https://raw.githubusercontent.com/ubccr/ccr-examples/refs/heads/main/containers/2_ApplicationSpecific/COMSOL/COMSOL64-MATLAB-R2025b-all_licenced_products.def
-```
-
-You will need two additional files in this directory:
-
-Your COMSOL license file named "COMSOL-SENS-license.dat" - COMSOL will NOT
-install without this.
-
-The install zip file "COMSOL64_lnx.zip" which is available from SENS.
-
-
-3. Build your container
-
-Set the apptainer cache dir:
-
-```bash
-export APPTAINER_CACHEDIR="${SLURMTMPDIR}"
-```
-
-Building the COMSOL container takes about half an hour...
-
-```bash
- apptainer build \
- --build-arg SLURMTMPDIR="${SLURMTMPDIR}" \
- --bind /scratch:/scratch \
- --bind $(pwd)/COMSOL64_lnx.zip:/COMSOL_build/COMSOL64_lnx.zip:ro \
- --bind $(pwd)/comsol64-setupconfig.ini:/COMSOL_build/setupconfig.ini:ro \
- --bind $(pwd)/COMSOL-SENS-license.dat:/COMSOL_build/license/license.dat:ro \
- COMSOL64-$(arch).sif COMSOL64.def
-```
-
-Sample truncated output:
-
-> ```
-> [....]
-> INFO:    Adding environment to container
-> INFO:    Creating SIF file...
-> INFO:    Build complete: COMSOL64-x86_64.sif
-> ```
-
-## Running the container
+# Running a COMSOL container instance
 
 Start an interactive job e.g.
 
@@ -174,40 +62,64 @@ salloc --cluster=ub-hpc --partition=general-compute --qos=general-compute \
  --time=01:00:00
 ```
 
-Change to your COMSOL directory
+Set "PROJECTS_DIR" to the path to your projects directory
+e.g.
 
 ```bash
-cd /projects/academic/[YourGroupName]/COMSOL
+export PROJECTS_DIR="/projects/academic/[YourGroupName]"
 ```
 
-Start the COMSOL container instance
+You will need yor COMSOL license file here:
+`${PROJECTS_DIR}/COMSOL/COMSOL-SENS-license.dat`
 
-For COMSOL without MALTAB
+Pick one of the three following options:  
+[COMSOL without MATLAB](#comsol-without-matlab)  
+[COMSOL with minimal MATLAB](#comsols-with-minimal-matlab)  
+[COMSOL with MATLAB including all the UB licensed MATLAB products[(#comsols-with-matlab-including-all-the-UB-licensed-matlab-products)
+
+
+## COMSOL without MALTAB
+
+```bash
+apptainer shell \
+ --no-env=XDG_DATA_DIRS \
+ --writable-tmpfs \
+ --bind "/util":"/util","/scratch":"/scratch" \
+ --bind "${PROJECTS_DIR}":"${PROJECTS_DIR}" \
+ --bind "${PROJECTS_DIR}/COMSOL/COMSOL-SENS-license.dat":"/COMSOL/license/license.dat":ro \
+ /util/software/containers/x86_64/COMSOL64-x86_64.sif
+```
+
+## COMSOL with minimal MATLAB
+The only optional MATLAB product installed in this container is the
+"MATLAB Parallel Computing Toolbox"
 
 ```bash
 apptainer shell \
  --no-env=XDG_DATA_DIRS \
  --writable-tmpfs \
  --bind /util:/util,/scratch:/scratch \
- --bind /vscratch/grp-[YourGroupName]:/vscratch/grp-[YourGroupName] \
- --bind /projects/academic/[YourGroupName]:/projects/academic/[YourGroupName] \
- --bind /projects/academic/[YourGroupName]/COMSOL/COMSOL-SENS-license.dat:/COMSOL/license/license.dat:ro \
- COMSOL64-$(arch).sif
+ --bind "/util":"/util","/scratch":"/scratch" \
+ --bind "${PROJECTS_DIR}":"${PROJECTS_DIR}" \
+ --bind "/util/software/licenses/matlab.lic":"/MATLAB/licenses/licenses.lic":ro \
+ --bind "${PROJECTS_DIR}/COMSOL/COMSOL-SENS-license.dat":"/COMSOL/license/license.dat":ro \
+ /util/software/containers/x86_64/COMSOL64-MATLAB-R2025b-x86_64.sif
 ```
 
-For COMSOL with MATLAB, using the UB MATLAB license file
+## COMSOL with MATLAB including all the UB licensed MATLAB products
 
 ```bash
 apptainer shell \
  --no-env=XDG_DATA_DIRS \
  --writable-tmpfs \
  --bind /util:/util,/scratch:/scratch \
- --bind /vscratch/grp-[YourGroupName]:/vscratch/grp-[YourGroupName] \
- --bind /projects/academic/[YourGroupName]:/projects/academic/[YourGroupName] \
- --bind /util/software/licenses/matlab.lic:/MATLAB/licenses/licenses.lic:ro \
- --bind /projects/academic/[YourGroupName]/COMSOL/COMSOL-SENS-license.dat:/COMSOL/license/license.dat:ro \
- COMSOL64-$(arch).sif
+ --bind "/util":"/util","/scratch":"/scratch" \
+ --bind "${PROJECTS_DIR}":"${PROJECTS_DIR}" \
+ --bind "/util/software/licenses/matlab.lic":"/MATLAB/licenses/licenses.lic":ro \
+ --bind "${PROJECTS_DIR}/COMSOL/COMSOL-SENS-license.dat":"/COMSOL/license/license.dat":ro \
+ /util/software/containers/x86_64/COMSOL64-MATLAB-R2025b-all_licenced_products-x86_64.sif
 ```
+
 
 All the following commands are run from the "Apptainer> " prompt
 

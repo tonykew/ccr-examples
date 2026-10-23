@@ -41,7 +41,7 @@ MATLAB license file, for example the UB academic MATLAB license:
 
 ```bash
 [...]
- --bind /util/software/licenses/matlab.lic:/MATLAB/licenses/licenses.lic:ro \
+ --bind "/util/software/licenses/matlab.lic":"/MATLAB/licenses/licenses.lic":ro \
 [...]
 ```
 
@@ -63,11 +63,15 @@ salloc --cluster=ub-hpc --partition=general-compute --qos=general-compute \
  --time=01:00:00
 ```
 
-Change to your COMSOL directory
+Set "PROJECTS_DIR" to the path to your projects directory
+e.g.
 
 ```bash
-cd /projects/academic/[YourGroupName]/COMSOL
+export PROJECTS_DIR="/projects/academic/[YourGroupName]"
 ```
+
+You will need yor COMSOL license file here:
+`${PROJECTS_DIR}/COMSOL/COMSOL-SENS-license.dat`
 
 Start the COMSOL container instance
 
@@ -76,9 +80,8 @@ apptainer shell \
  --no-env=XDG_DATA_DIRS \
  --writable-tmpfs \
  --bind /util:/util,/scratch:/scratch \
- --bind /vscratch/grp-[YourGroupName]:/vscratch/grp-[YourGroupName] \
- --bind /projects/academic/[YourGroupName]:/projects/academic/[YourGroupName] \
- --bind /projects/academic/[YourGroupName]/COMSOL/COMSOL-SENS-license.dat:/COMSOL/license/license.dat:ro \
+ --bind "${PROJECTS_DIR}":"${PROJECTS_DIR}" \
+ --bind "${PROJECTS_DIR}/COMSOL/COMSOL-SENS-license.dat":"/COMSOL/license/license.dat":ro \
  /util/software/containers/x86_64/COMSOL64-x86_64.sif 
 ```
 
@@ -266,11 +269,15 @@ A new window will open with the GUI displayed.
 Open a terminal with:
 [Applications][Terminal Emulator]
 
-cd to your COMSOL directory
+Set "PROJECTS_DIR" to the path to your projects directory
+e.g.
 
 ```bash
-cd /projects/academic/[YourGroupName]/COMSOL
+export PROJECTS_DIR="/projects/academic/[YourGroupName]"
 ```
+ 
+You will need yor COMSOL license file here:
+`${PROJECTS_DIR}/COMSOL/COMSOL-SENS-license.dat`
 
 Start the COMSOL container instance (COMSOL without MATLAB)
 
@@ -279,12 +286,10 @@ apptainer shell \
  --no-env=XDG_DATA_DIRS \
  --writable-tmpfs \
  --bind /util:/util,/scratch:/scratch \
- --bind /vscratch/grp-[YourGroupName]:/vscratch/grp-[YourGroupName] \
- --bind /projects/academic/[YourGroupName]:/projects/academic/[YourGroupName] \
- --bind /projects/academic/[YourGroupName]/COMSOL/COMSOL-SENS-license.dat:/COMSOL/license/license.dat:ro \
+ --bind "${PROJECTS_DIR}":"${PROJECTS_DIR}" \
+ --bind "${PROJECTS_DIR}/COMSOL/COMSOL-SENS-license.dat":"/COMSOL/license/license.dat":ro \
  /util/software/containers/x86_64/COMSOL64-x86_64.sif 
 ```
- --bind /util/software/licenses/matlab.lic:/MATLAB/licenses/licenses.lic:ro \
 
 Note: For COMSOL with MATLAB using UB's academic MATLAB licenses you need to add
 a bind mount for the MATLAB license, for example:
@@ -294,10 +299,9 @@ apptainer shell \
  --no-env=XDG_DATA_DIRS \
  --writable-tmpfs \
  --bind /util:/util,/scratch:/scratch \
- --bind /vscratch/grp-[YourGroupName]:/vscratch/grp-[YourGroupName] \
- --bind /projects/academic/[YourGroupName]:/projects/academic/[YourGroupName] \
- --bind /projects/academic/[YourGroupName]/COMSOL/COMSOL-SENS-license.dat:/COMSOL/license/license.dat:ro \
- --bind /util/software/licenses/matlab.lic:/MATLAB/licenses/licenses.lic:ro \
+ --bind "${PROJECTS_DIR}":"${PROJECTS_DIR}" \
+ --bind "/util/software/licenses/matlab.lic":"/MATLAB/licenses/licenses.lic":ro \
+ --bind "${PROJECTS_DIR}/COMSOL/COMSOL-SENS-license.dat":"/COMSOL/license/license.dat":ro \
  /util/software/containers/x86_64/COMSOL64-MATLAB-R2025b-all_licenced_products-x86_64.sif
 ```
 
