@@ -8,10 +8,10 @@
 ## Select a cluster, partition, qos and account that is appropriate for your use case
 ## Available options and more details are provided in CCR's documentation:
 ##   https://docs.ccr.buffalo.edu/en/latest/hpc/jobs/#slurm-directives-partitions-qos
-#SBATCH --cluster=[cluster]
-#SBATCH --partition=[partition]
-#SBATCH --qos=[qos]
-#SBATCH --account=[SlurmAccountName]
+#SBATCH --cluster="[cluster]"
+#SBATCH --partition="[partition]"
+#SBATCH --qos="[qos]"
+#SBATCH --account="[SlurmAccountName]"
 
 ## Job runtime limit, the job will be canceled once this limit is reached. Format- dd-hh:mm:ss
 #SBATCH --time=00:20:00
@@ -31,12 +31,15 @@
 #SBATCH --mem=0
 
 
+## Set "PROJECTS_DIR" to the path to your projects directory
+export PROJECTS_DIR="/projects/academic/[YourGroupName]"
+
 ## CONTAINER_DIR == directory with the GROMACS container image
-CONTAINER_DIR="/projects/academic/[CCRgroupname]/Containers"
+CONTAINER_DIR="${PROJECTS_DIR}/Containers"
 
 ## For the latest version of the nvidia GROMACS container see:
-##   https://catalog.ngc.nvidia.com/orgs/hpc/containers/gromacs
-GROMACS_TAG="2023.2"
+##   https://catalog.ngc.nvidia.com/orgs/nvidia/containers/gromacs
+GROMACS_TAG="v2026.2"
 
 ## Set the number of OpenMPI threads per task
 ## Use ${SLURM_CPUS_PER_TASK} if "#SBATCH --cpus-per-task=[...]" is used above,
@@ -50,54 +53,38 @@ mkdir -p "${CUDA_CACHE_PATH}"
 ## Enable the direct GPU communication capabilities of MPI
 export GMX_ENABLE_DIRECT_GPU_COMM=1
 
-container_image="gromacs-${GROMACS_TAG}-$(arch).sif"
-
 # make sure APPTAINER_TMPDIR is set to a sensible default
 export APPTAINER_TMPDIR="${APPTAINER_TMPDIR:-${SLURMTMPDIR}/apptainer/tmp}"
 mkdir -p "${APPTAINER_TMPDIR}"
 
-## Fetch the nvidia GROMACS container, if necessary
-gromacs_url="docker://nvcr.io/hpc/gromacs:${GROMACS_TAG}"
-test ! -d "${CONTAINER_DIR}" && mkdir "${CONTAINER_DIR}"
-pushd "${CONTAINER_DIR}" > /dev/null
-if ! test -f "${container_image}"
-then
-  export APPTAINER_CACHEDIR="${APPTAINER_CACHEDIR:-${SLURMTMPDIR}/apptainer}"
-  mkdir -p "${APPTAINER_CACHEDIR}"
-  echo "Fetching the nvidia GROMACS container..."
-  apptainer --silent pull "${container_image}" "${gromacs_url}"
-  if test ! -f "${container_image}"
-  then
-    echo "apptainer pull failed - bailing!" >&2
-    exit 1
-  fi
-  echo "container downloaded sucessfully:"
-  ls -lh "${container_image}"
-  echo
-fi
-popd > /dev/null
+container_image="GROMACS-${GROMACS_TAG}-CUDA-$(arch).sif"
 
-## Fetch the benchmarks
+if ! test -f "${CONTAINER_DIR}/${container_image}"
+then
+  echo "GROMACS container \"${CONTAINER_DIR}/${container_image}\" missing - bailing" >&2
+  exit 1
+fi
+
+## untar the benchmarks
 if [ ! -f "water_GMX50_bare.tar.gz" ]
 then
-  wget --no-verbose http://ftp.gromacs.org/pub/benchmarks/water_GMX50_bare.tar.gz
+  echo "Benchmark \"water_GMX50_bare.tar.gz\" missing - bailing" >&2
+  exit 1
 fi
 gzip -dc water_GMX50_bare.tar.gz | tar xf -
 
 cd water-cut1.0_GMX50_bare/0000.96/
 
 apptainer run \
- --bind /util:/util,/scratch:/scratch \
- --bind /vscratch/grp-[YourGroupName]:/vscratch/grp-[YourGroupName] \
- --bind /projects/academic/[YourGroupName]:/projects/academic/[YourGroupName] \
+ --bind "/util":"/util","/scratch":"/scratch" \
+ --bind "${PROJECTS_DIR}":"${PROJECTS_DIR}" \
  --nv \
  "${CONTAINER_DIR}/${container_image}" \
  gmx grompp -f pme.mdp -o bench.tpr
 
 apptainer run \
- --bind /util:/util,/scratch:/scratch \
- --bind /vscratch/grp-[YourGroupName]:/vscratch/grp-[YourGroupName] \
- --bind /projects/academic/[YourGroupName]:/projects/academic/[YourGroupName] \
+ --bind "/util":"/util","/scratch":"/scratch" \
+ --bind "${PROJECTS_DIR}":"${PROJECTS_DIR}" \
  --sharens \
  --nv \
  "${CONTAINER_DIR}/${container_image}" \
